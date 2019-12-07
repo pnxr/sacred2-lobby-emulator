@@ -1,0 +1,1 @@
+s2gs.exe -connmode=opennet -diff=silver -name="Server 1" -description="Campaign Server" -numplayers=5 -type=campaign -lockconfig -log=0 -lobby=localhost -lobby_port=6800 -externalip=127.0.0.1 -port=6802 -lobby_name=USERNAME -lobby_pwd=PASSWORD
