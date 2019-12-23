@@ -1,0 +1,27 @@
+version: '3.7'
+
+x-docker-data: &s2gs-template-shared
+  restart: unless-stopped
+  image: s2gs
+  build:
+    context: .
+    dockerfile: gameserver.dockerfile
+  volumes:
+    - ${CONTAINER_VOLUME}/gs:/data
+  networks:
+    sacred2-backend:
+
+networks:
+  sacred2-backend:
+    external:
+      name: sacred2-backend-network
+
+services:
+  sacred2-gameserver1:
+    <<: *s2gs-template-shared
+    container_name: ${CONTAINER_NAME}_gs${GS1_ID}
+    working_dir: /data/${GS1_TYPE}/system
+    command: /bin/bash -c "sleep 1 && wine s2gs.exe -connmode=opennet -diff=${GS1_DIFF} -name=\"${GS1_NAME}\" -description=\"${GS1_DESC}\" -numplayers=${GS1_PLAYERS} -type=${GS1_MODE} -lobby=172.68.0.3 -lobby_port=${LOBBY_PORT} -externalip=${SERVER_IP} -port=${GS1_PORT} -lobby_name=${LOBBY_NAME} -lobby_pwd=${LOBBY_PASSWORD}"
+    ports:
+      - ${SERVER_IP}:${GS1_PORT}:${GS1_PORT}/tcp
+
