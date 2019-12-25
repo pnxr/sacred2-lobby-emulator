@@ -53,9 +53,11 @@ services:
         ipv4_address: 172.68.0.3
       frontend:
     ports:
-      # allow access via all worldwide known sacred2 lobby ports to minimize necassary changes to default config of client      
-      - ${SERVER_IP}:6800:${LOBBY_PORT}/tcp #(EN/FR/IT/DE/AUS/Swiss/Nordic People/Portugal/Benelux/Greece/Australian/South Africa)
-      - ${SERVER_IP}:6850:${LOBBY_PORT}/tcp #(PL/CZ/HU/Slowak/) 
-      - ${SERVER_IP}:6810:${LOBBY_PORT}/tcp #(SP)
-      - ${SERVER_IP}:6820:${LOBBY_PORT}/tcp #(RUSS)
-      - ${SERVER_IP}:6900:${LOBBY_PORT}/tcp #(US,Canada,Mexico)
+      # allow access via all worldwide known sacred2 lobby ports to minimize necassary changes to default config of client         
+      - ${SERVER_IP}:6800:${LOBBY_PORT} #(EN/FR/IT/DE/AUS/Swiss/Nordic People/Portugal/Benelux/Greece/Australian/South Africa)
+      - ${SERVER_IP}:6850:${LOBBY_PORT} #(PL/CZ/HU/Slowak/) 
+      - ${SERVER_IP}:6810:${LOBBY_PORT} #(SP)
+      - ${SERVER_IP}:6820:${LOBBY_PORT} #(RUSS)
+      - ${SERVER_IP}:6900:${LOBBY_PORT} #(US,Canada,Mexico)
+      # allow lobby chat
+      - ${SERVER_IP}:6801:6801
