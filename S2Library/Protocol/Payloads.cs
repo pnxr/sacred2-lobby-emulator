@@ -164,7 +164,7 @@ namespace S2Library.Protocol
             UnknownType166 = 166,
             UnknownType167 = 167,
             RegisterServer = 168, // UnknownType168
-            UnknownType169 = 169,
+            UnlistServer = 169, // UnknownType169
             ServerInfo = 170, // UnknownType170
             GetServers = 171, // UnknownType171
             StopServerUpdates = 172, // UnknownType172
@@ -392,7 +392,7 @@ namespace S2Library.Protocol
             PayloadTypes.Add(typeof(Payload166), Types.UnknownType166);
             PayloadTypes.Add(typeof(Payload167), Types.UnknownType167);
             PayloadTypes.Add(typeof(RegisterServer), Types.RegisterServer); // Payload168
-            PayloadTypes.Add(typeof(Payload169), Types.UnknownType169);
+            PayloadTypes.Add(typeof(UnlistServer), Types.UnlistServer); // Payload169
             PayloadTypes.Add(typeof(ServerInfo), Types.ServerInfo); // Payload170
             PayloadTypes.Add(typeof(GetServers), Types.GetServers); // Payload171
             PayloadTypes.Add(typeof(StopServerUpdates), Types.StopServerUpdates); // Payload172
@@ -4271,7 +4271,7 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("running",0xe);
 //    (**(code**)(* piVar1 + 8))("ticket_id",8);
 //    (**(code**)(* unaff_EDI + 4))(0xa9,piVar1);
-    public class Payload169 : PayloadPrefix
+    public class UnlistServer : PayloadPrefix // Payload169
     {
         public uint ServerId;
         public bool Running;

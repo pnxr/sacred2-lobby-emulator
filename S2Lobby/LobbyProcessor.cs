@@ -23,6 +23,7 @@ namespace S2Lobby
             if (_server != null)
             {
                 Program.Servers.Remove(_server.Id);
+                NotifyUnlistServer(_server.Id, _server.Running);
                 _server = null;
             }
         }
@@ -524,6 +525,18 @@ namespace S2Lobby
             foreach (KeyValuePair<uint, uint> server in servers)
             {
                 SendToLobbyConnection(server.Key, serverInfo);
+            }
+        }
+
+        private void NotifyUnlistServer(uint serverId, bool running)
+        {
+            UnlistServer unlistInfo = Payloads.CreatePayload<UnlistServer>();
+            unlistInfo.ServerId = serverId;
+            unlistInfo.Running = running;
+            KeyValuePair<uint, uint>[] servers = ServerUpdateReceivers.ToArray();
+            foreach (KeyValuePair<uint, uint> server in servers)
+            {
+                SendToLobbyConnection(server.Key, unlistInfo);
             }
         }
     }
