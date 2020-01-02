@@ -1,52 +1,32 @@
 ﻿using System;
 using System.Data.SQLite;
+using MySql.Data.MySqlClient;
+
 
 namespace S2Lobby
 {
     public class Database : IDisposable
     {
-        public readonly SQLiteConnection Connection;
+        public readonly MySqlConnection Connection;
 
-        private SQLiteConnection _channelDB;
-
-        public SQLiteConnection Channels
+        public Database(Program program)
         {
-            get
-            {
-                if (_channelDB == null)
-                {
-                    string connectionString = "Data Source=channels.sqlite;";
-                    _channelDB = new SQLiteConnection(connectionString);
-                    _channelDB.Open();
-                }
-                return _channelDB;
-            }
-        }
+            string connectionString =
+           "Server=" + program.DbIp + ";" +
+           "Port=" + program.DbPort + ";" +
+           "Database=" + program.DbName + ";" +
+           "User ID=" + program.DbUser + ";" +
+           "Password=" + program.DbPass + ";" +
+           "Pooling=true";
 
-        public Database()
-        {
-            string connectionString = "Data Source=accounts.sqlite;";
-            Connection = new SQLiteConnection(connectionString);
+            Connection = new MySqlConnection(connectionString);
             Connection.Open();
-        }
-
-        public void CloseChannelDB()
-        {
-            if (_channelDB != null)
-            {
-                _channelDB.Close();
-                _channelDB.Dispose();
-                _channelDB = null;
-            }
         }
 
         public void Dispose()
         {
-            CloseChannelDB();
-
             Connection.Close();
             Connection.Dispose();
         }
-
     }
 }

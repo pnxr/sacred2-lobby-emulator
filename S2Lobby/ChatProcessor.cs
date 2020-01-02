@@ -48,7 +48,7 @@ namespace S2Lobby
 
         protected override void HandleInitialReply()
         {
-            List<Channel> channels = Program.Channels.GetAll(Database.Channels);
+            List<Channel> channels = Program.Channels.GetAll(Database.Connection);
 
             foreach (Channel channel in channels)
             {

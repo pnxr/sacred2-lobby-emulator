@@ -1,0 +1,63 @@
+version: '3.7'
+
+volumes:
+  # lobby executable and config
+  sacred2-lb-data:
+    driver: local-persist
+    driver_opts:
+      mountpoint: ${CONTAINER_VOLUME}/lb
+  # database storage
+  sacred2-db-data:
+    driver: local-persist
+    driver_opts:
+      mountpoint: ${CONTAINER_VOLUME}/db
+
+networks:
+  sacred2-backend:
+      name: sacred2-backend-network
+      driver: bridge
+      ipam:
+        driver: default
+        config:
+          - subnet: 172.68.0.0/16
+  frontend:
+
+services:
+  sacred2-database:
+    container_name: ${CONTAINER_NAME}_db
+    restart: unless-stopped
+    image: mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    volumes:
+      - sacred2-db-data:/var/lib/mysql
+    ports:
+      - 127.0.0.1:30000:3306
+    networks:
+      sacred2-backend:
+        ipv4_address: 172.68.0.2
+
+  sacred2-lobby:
+    container_name: ${CONTAINER_NAME}_lb
+    restart: unless-stopped
+    image: mono
+    working_dir: /data
+    command: sh -c "sleep 3 && mono S2Lobby.exe"
+    depends_on:
+      - sacred2-database
+    volumes:
+      - sacred2-lb-data:/data
+    networks:
+      sacred2-backend:
+        ipv4_address: 172.68.0.3
+      frontend:
+    ports:
+      # allow access via all worldwide known sacred2 lobby ports to minimize necassary changes to default config of client         
+      - ${SERVER_IP}:6800:${LOBBY_PORT} #(EN/FR/IT/DE/AUS/Swiss/Nordic People/Portugal/Benelux/Greece/Australian/South Africa)
+      - ${SERVER_IP}:6850:${LOBBY_PORT} #(PL/CZ/HU/Slowak/) 
+      - ${SERVER_IP}:6810:${LOBBY_PORT} #(SP)
+      - ${SERVER_IP}:6820:${LOBBY_PORT} #(RUSS)
+      - ${SERVER_IP}:6900:${LOBBY_PORT} #(US,Canada,Mexico)
+      # allow lobby chat
+      - ${SERVER_IP}:6801:6801

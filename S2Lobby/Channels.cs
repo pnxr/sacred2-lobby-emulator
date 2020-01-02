@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Data.SQLite;
 using System.Text;
+using MySql.Data.MySqlClient;
 
 namespace S2Lobby
 {
@@ -12,103 +12,110 @@ namespace S2Lobby
         {
             _program = program;
 
-            SQLiteConnection sql = new SQLiteConnection("Data Source=channels.sqlite;");
-            sql.Open();
-
-            SQLiteTransaction transaction = sql.BeginTransaction();
-
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("CREATE TABLE IF NOT EXISTS channels (");
-            cmd.AppendLine("    channel_id          INTEGER PRIMARY KEY AUTOINCREMENT");
-            cmd.AppendLine(",   channel_name        VARCHAR(127) NOT NULL");
-            cmd.AppendLine(",   channel_subject     VARCHAR(255)");
-            cmd.AppendLine(",   channel_creator     VARCHAR(127) NOT NULL");
-            cmd.AppendLine(",   creator_id          INTEGER NOT NULL");
-            cmd.AppendLine(",   channel_protected   INTEGER NOT NULL DEFAULT(0)");
-            cmd.AppendLine(",   channel_password    VARCHAR(127)");
-            cmd.AppendLine(",   channel_hidden      INTEGER NOT NULL DEFAULT(0)");
-            cmd.AppendLine(");");
-
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            if (command.ExecuteNonQuery() >= 0)
+            string connectionString =
+           "Server=" + program.DbIp + ";" +
+           "Port=" + program.DbPort + ";" +
+           "Database=" + program.DbName + ";" +
+           "User ID=" + program.DbUser + ";" +
+           "Password=" + program.DbPass + ";" +
+           "Pooling=false;";
+            try
             {
-                string cmd1 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('System', 'System Channel', 'Admin', 0, 1);";
-                SQLiteCommand command1 = new SQLiteCommand(cmd1, sql, transaction);
-                command1.ExecuteNonQuery();
+                MySqlConnection mysql = new MySqlConnection(connectionString);
+                mysql.Open();
 
-                string cmd2 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('Lobby', 'Lobby Channel', 'Admin', 0, 1);";
-                SQLiteCommand command2 = new SQLiteCommand(cmd2, sql, transaction);
-                command2.ExecuteNonQuery();
-            }
+                MySqlTransaction transaction = mysql.BeginTransaction();
 
-            transaction.Commit();
+                StringBuilder cmd = new StringBuilder();
+                cmd.AppendLine("CREATE TABLE IF NOT EXISTS channels (");
+                cmd.AppendLine("    channel_id          INTEGER PRIMARY KEY AUTO_INCREMENT");
+                cmd.AppendLine(",   channel_name        VARCHAR(127) NOT NULL");
+                cmd.AppendLine(",   channel_subject     VARCHAR(255)");
+                cmd.AppendLine(",   channel_creator     VARCHAR(127) NOT NULL");
+                cmd.AppendLine(",   creator_id          INTEGER NOT NULL");
+                cmd.AppendLine(",   channel_protected   INTEGER NOT NULL DEFAULT(0)");
+                cmd.AppendLine(",   channel_password    VARCHAR(127)");
+                cmd.AppendLine(",   channel_hidden      INTEGER NOT NULL DEFAULT(0)");
+                cmd.AppendLine(");");
 
-            command.Dispose();
-            transaction.Dispose();
+                MySqlCommand command = mysql.CreateCommand();
+                command.CommandText = cmd.ToString();
+                command.Transaction = transaction;
 
-            sql.Close();
-            sql.Dispose();
+                if (command.ExecuteNonQuery() > 0)
+                {
+                    string cmd1 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('System', 'System Channel', 'Admin', 0, 1);";
+                    MySqlCommand command1 = new MySqlCommand(cmd1, mysql, transaction);
+                    command1.ExecuteNonQuery();
+
+                    string cmd2 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('Lobby', 'Lobby Channel', 'Admin', 0, 1);";
+                    MySqlCommand command2 = new MySqlCommand(cmd2, mysql, transaction);
+                    command2.ExecuteNonQuery();
+                }
+                transaction.Commit();
+
+                command.Dispose();
+                transaction.Dispose();
+
+                mysql.Close();
+                mysql.Dispose();
 
             _program.Log($"[Channel database ready]");
+            }
+            catch
+            {
+                _program.Log($"[Failed to access channel database]");
+                System.Environment.Exit(1);
+            }
         }
 
-        public uint Create(SQLiteConnection sql, Channel channel)
+        public uint Create(MySqlConnection mysql, Channel channel)
         {
-            Channel existing = Get(sql, channel.Id);
+            Channel existing = Get(mysql, channel.Id);
             if (existing != null)
             {
                 return 0;
             }
 
-            SQLiteParameter para1 = new SQLiteParameter();
-            SQLiteParameter para2 = new SQLiteParameter();
-            SQLiteParameter para3 = new SQLiteParameter();
-            SQLiteParameter para4 = new SQLiteParameter();
-            SQLiteParameter para5 = new SQLiteParameter();
-            SQLiteParameter para6 = new SQLiteParameter();
-            SQLiteParameter para7 = new SQLiteParameter();
+            MySqlParameter channelName = new MySqlParameter("channelName", channel.Name);
+            MySqlParameter channelSubject = new MySqlParameter("channelSubject", channel.Subject);
+            MySqlParameter channelCreator = new MySqlParameter("channelCreator", channel.Creator);
+            MySqlParameter channelCreatorId = new MySqlParameter("channelCreatorId", channel.CreatorId);
+            MySqlParameter channelProtected = new MySqlParameter("channelProtected", channel.Protected ? 1 : 0);
+            MySqlParameter channelPassword = new MySqlParameter("channelPassword", channel.Password);
+            MySqlParameter channelHidden = new MySqlParameter("channelHidden", channel.Hidden ? 1 : 0);
 
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected, channel_password, channel_hidden) VALUES (?, ?, ?, ?, ?, ?, ?);");
+            cmd.AppendLine("INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected, channel_password, channel_hidden)" +
+                           "VALUES (?channelName, ?channelSubject, ?channelCreator, ?channelCreatorId, ?channelProtected, ?channelPassword, ?channelHidden);");
 
-            para1.Value = channel.Name;
-            para2.Value = channel.Subject;
-            para3.Value = channel.Creator;
-            para4.Value = channel.CreatorId;
-            para5.Value = channel.Protected ? 1 : 0;
-            para6.Value = channel.Password;
-            para7.Value = channel.Hidden ? 1 : 0;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
-
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
-            command.Parameters.Add(para2);
-            command.Parameters.Add(para3);
-            command.Parameters.Add(para4);
-            command.Parameters.Add(para5);
-            command.Parameters.Add(para6);
-            command.Parameters.Add(para7);
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql, transaction);
+            command.Parameters.Add(channelName);
+            command.Parameters.Add(channelSubject);
+            command.Parameters.Add(channelCreator);
+            command.Parameters.Add(channelCreatorId);
+            command.Parameters.Add(channelProtected);
+            command.Parameters.Add(channelPassword);
+            command.Parameters.Add(channelHidden);
 
             command.ExecuteNonQuery();
 
             transaction.Commit();
-
+            uint lastId = (uint)command.LastInsertedId;
             command.Dispose();
             transaction.Dispose();
 
-            return (uint)GetLastAutoIncrement(sql);
+            return lastId;
         }
 
-        public Channel Get(SQLiteConnection sql, uint id)
+        public Channel Get(MySqlConnection mysql, uint id)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            para1.Value = id;
-
-            return GetInternal(sql, "channel_id", para1);
+            return GetInternal(mysql, "channel_id", new MySqlParameter("searchCondition", id));
         }
 
-        private Channel GetInternal(SQLiteConnection sql, string field, SQLiteParameter para1)
+        private Channel GetInternal(MySqlConnection mysql, string searchKey, MySqlParameter searchCondition)
         {
             StringBuilder cmd = new StringBuilder();
             cmd.AppendLine("SELECT ");
@@ -121,12 +128,12 @@ namespace S2Lobby
             cmd.AppendLine(",   channel_password");
             cmd.AppendLine(",   channel_hidden");
             cmd.AppendLine("FROM channels");
-            cmd.AppendLine($"WHERE {field} = ?;");
+            cmd.AppendLine($"WHERE {searchKey} = ?searchCondition;");
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql);
-            command.Parameters.Add(para1);
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
+            command.Parameters.Add(searchCondition);
 
-            SQLiteDataReader reader = command.ExecuteReader();
+            MySqlDataReader reader = command.ExecuteReader();
             if (!reader.Read())
             {
                 return null;
@@ -134,7 +141,7 @@ namespace S2Lobby
 
             Channel channel = new Channel()
             {
-                Id = (uint)(long)reader["channel_id"],
+                Id = uint.Parse(reader["channel_id"].ToString()),
                 Name = reader["channel_name"] as string,
                 Subject = reader["channel_subject"] as string,
                 Creator = reader["channel_creator"] as string,
@@ -151,7 +158,7 @@ namespace S2Lobby
             return channel;
         }
 
-        public List<Channel> GetAll(SQLiteConnection sql)
+        public List<Channel> GetAll(MySqlConnection mysql)
         {
             StringBuilder cmd = new StringBuilder();
             cmd.AppendLine("SELECT ");
@@ -166,23 +173,23 @@ namespace S2Lobby
             cmd.AppendLine("FROM channels");
             cmd.AppendLine("ORDER BY channel_id;");
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql);
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
 
             List<Channel> result = new List<Channel>();
 
-            SQLiteDataReader reader = command.ExecuteReader();
+            MySqlDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
                 Channel channel = new Channel()
                 {
-                    Id = (uint)(long)reader["channel_id"],
+                    Id = uint.Parse(reader["channel_id"].ToString()),
                     Name = reader["channel_name"] as string,
                     Subject = reader["channel_subject"] as string,
                     Creator = reader["channel_creator"] as string,
-                    CreatorId = (uint)(long)reader["creator_id"],
-                    Protected = (long)reader["channel_protected"] != 0,
+                    CreatorId = uint.Parse(reader["creator_id"].ToString()),
+                    Protected = uint.Parse(reader["channel_protected"].ToString()) != 0,
                     Password = reader["channel_password"] as string,
-                    Hidden = (long)reader["channel_hidden"] != 0,
+                    Hidden = uint.Parse(reader["channel_hidden"].ToString()) != 0,
                     Persistent = true,
                 };
 
@@ -195,19 +202,17 @@ namespace S2Lobby
             return result;
         }
 
-        public void Delete(SQLiteConnection sql, uint id)
+        public void Delete(MySqlConnection mysql, uint id)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
+            MySqlParameter channelId = new MySqlParameter("channelId", id);
 
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("DELETE FROM channels WHERE channel_protected = 0 AND channel_id = ?;");
+            cmd.AppendLine("DELETE FROM channels WHERE channel_protected = 0 AND channel_id = ?channelId;");
 
-            para1.Value = id;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
-
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql, transaction);
+            command.Parameters.Add(channelId);
 
             command.ExecuteNonQuery();
 
@@ -215,15 +220,6 @@ namespace S2Lobby
 
             command.Dispose();
             transaction.Dispose();
-        }
-
-        private static long GetLastAutoIncrement(SQLiteConnection sql)
-        {
-            string cmd= "SELECT last_insert_rowid();";
-            SQLiteCommand command2 = new SQLiteCommand(cmd, sql);
-            long scalar = (long) command2.ExecuteScalar();
-            command2.Dispose();
-            return scalar;
         }
     }
 

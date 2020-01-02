@@ -18,6 +18,12 @@ namespace S2Lobby
         public uint ChatPort { get; private set; } = 6801;
 
         public string Ip { get; private set; } = "127.0.0.1";
+        public string DbIp { get; private set; } = "127.0.0.1";
+        public string DbName { get; private set; } = "s2lobby";
+        public string DbUser { get; private set; } = "root";
+        public string DbPass { get; private set; } = "password";
+
+        public string DbPort { get; private set; } = "3306";
 
         private readonly ConnectionManager _lobbyConnectionManager = new ConnectionManager();
         private readonly ConnectionManager _chatConnectionManager = new ConnectionManager();
@@ -64,6 +70,20 @@ namespace S2Lobby
                     {
                         ChatPort = port;
                     }
+                }
+            }
+
+
+            if (File.Exists("db.cfg"))
+            {
+                string[] lines = File.ReadAllLines("db.cfg");
+                if (lines.Length > 4)
+                {
+                    DbIp = lines[0];
+                    DbPort = lines[1];
+                    DbName = lines[2];
+                    DbUser = lines[3];
+                    DbPass = lines[4];
                 }
             }
 

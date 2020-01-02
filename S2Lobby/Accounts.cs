@@ -1,5 +1,7 @@
-﻿using System.Data.SQLite;
+﻿using System.Data;
 using System.Text;
+
+using MySql.Data.MySqlClient;
 
 namespace S2Lobby
 {
@@ -11,93 +13,99 @@ namespace S2Lobby
         {
             _program = program;
 
-            SQLiteConnection sql = new SQLiteConnection("Data Source=accounts.sqlite;");
-            sql.Open();
+            string connectionString =
+           "Server="+ program.DbIp+ ";" +
+           "Port=" + program.DbPort + ";" +
+           "Database=" + program.DbName + ";" +
+           "User ID=" + program.DbUser + ";" +
+           "Password=" + program.DbPass + ";" +
+           "Pooling=false;";
+            try
+            {
+                MySqlConnection mysql = new MySqlConnection(connectionString);
+                mysql.Open();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
+                MySqlTransaction transaction = mysql.BeginTransaction();
 
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("CREATE TABLE IF NOT EXISTS accounts (");
-            cmd.AppendLine("    account_id          INTEGER PRIMARY KEY AUTOINCREMENT");
-            cmd.AppendLine(",   user_name           VARCHAR(127) NOT NULL");
-            cmd.AppendLine(",   user_name_upper     VARCHAR(127) NOT NULL");
-            cmd.AppendLine(",   user_password       BLOB NOT NULL");
-            cmd.AppendLine(",   user_cdkey          BLOB NOT NULL");
-            cmd.AppendLine(",   user_email          VARCHAR(255)");
-            cmd.AppendLine(",   user_data           BLOB");
-            cmd.AppendLine(",   player_nickname     VARCHAR(127)");
-            cmd.AppendLine(");");
+                StringBuilder cmd = new StringBuilder();
+                cmd.AppendLine("CREATE TABLE IF NOT EXISTS accounts (");
+                cmd.AppendLine("    account_id          INTEGER PRIMARY KEY AUTO_INCREMENT");
+                cmd.AppendLine(",   user_name           VARCHAR(127) NOT NULL");
+                cmd.AppendLine(",   user_name_upper     VARCHAR(127) NOT NULL");
+                cmd.AppendLine(",   user_password       BLOB NOT NULL");
+                cmd.AppendLine(",   user_cdkey          BLOB NOT NULL");
+                cmd.AppendLine(",   user_email          VARCHAR(255)");
+                cmd.AppendLine(",   user_data           BLOB");
+                cmd.AppendLine(",   player_nickname     VARCHAR(127)");
+                cmd.AppendLine(");");
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.ExecuteNonQuery();
+                MySqlCommand command = mysql.CreateCommand();
+                command.CommandText = cmd.ToString();
+                command.Transaction = transaction;
 
-            transaction.Commit();
+                command.ExecuteNonQuery();
 
-            command.Dispose();
-            transaction.Dispose();
+                transaction.Commit();
 
-            sql.Close();
-            sql.Dispose();
+                command.Dispose();
+                transaction.Dispose();
 
-            _program.Log($"[Account database ready]");
+                mysql.Close();
+                mysql.Dispose();
+
+                _program.Log($"[Account database ready]");
+            }
+            catch {
+                _program.Log($"[Failed to access account database]");
+                System.Environment.Exit(1);
+            }
         }
 
-        public uint Create(SQLiteConnection sql, string username, byte[] password, byte[] cdKey)
+        public uint Create(MySqlConnection mysql, string username, byte[] password, byte[] cdKey)
         {
-            Account account = Get(sql, username);
+            Account account = Get(mysql, username);
             if (account != null)
             {
                 return 0;
             }
 
-            SQLiteParameter para1 = new SQLiteParameter();
-            SQLiteParameter para2 = new SQLiteParameter();
-            SQLiteParameter para3 = new SQLiteParameter();
-            SQLiteParameter para4 = new SQLiteParameter();
-
+            long insertedId = -1;
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("INSERT INTO accounts (user_name, user_name_upper, user_password, user_cdkey) VALUES (?, ?, ?, ?);");
+            cmd.AppendLine("INSERT INTO accounts (user_name, user_name_upper, user_password, user_cdkey) VALUES (?p1, ?p2, ?p3, ?p4);");
 
-            para1.Value = username;
-            para2.Value = username.ToUpperInvariant();
-            para3.Value = password;
-            para4.Value = cdKey;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
+            MySqlCommand command = mysql.CreateCommand();
+            command.CommandText = cmd.ToString();
+            command.Transaction = transaction;
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
-            command.Parameters.Add(para2);
-            command.Parameters.Add(para3);
-            command.Parameters.Add(para4);
+            command.Parameters.Add(new MySqlParameter("p1", username));
+            command.Parameters.Add(new MySqlParameter("p2", username.ToUpperInvariant()));
+            command.Parameters.Add(new MySqlParameter("p3", password));
+            command.Parameters.Add(new MySqlParameter("p4", cdKey));
 
             command.ExecuteNonQuery();
+            insertedId = command.LastInsertedId;
 
             transaction.Commit();
 
             command.Dispose();
             transaction.Dispose();
 
-            return (uint)GetLastAutoIncrement(sql);
+            return (uint)insertedId;
         }
 
-        public Account Get(SQLiteConnection sql, string name)
+        public Account Get(MySqlConnection mysql, string name)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            para1.Value = name.ToUpperInvariant();
-
-            return GetInternal(sql, "user_name_upper", para1);
+            return GetInternal(mysql, "user_name_upper", new MySqlParameter("searchCondition", name.ToUpperInvariant()));
         }
 
-        public Account Get(SQLiteConnection sql, uint id)
+        public Account Get(MySqlConnection mysql, uint id)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            para1.Value = id;
-
-            return GetInternal(sql, "account_id", para1);
+            return GetInternal(mysql, "account_id", new MySqlParameter("searchCondition", id));
         }
 
-        private Account GetInternal(SQLiteConnection sql, string field, SQLiteParameter para1)
+        private Account GetInternal(MySqlConnection mysql, string searchKey, MySqlParameter searchCondition)
         {
             StringBuilder cmd = new StringBuilder();
             cmd.AppendLine("SELECT ");
@@ -109,50 +117,49 @@ namespace S2Lobby
             cmd.AppendLine(",   user_data");
             cmd.AppendLine(",   player_nickname");
             cmd.AppendLine("FROM accounts");
-            cmd.AppendLine($"WHERE {field} = ?;");
+            cmd.AppendLine($"WHERE {searchKey} = ?searchCondition;");
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql);
-            command.Parameters.Add(para1);
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
+            command.Parameters.Add(searchCondition);
 
-            SQLiteDataReader reader = command.ExecuteReader();
-            if (!reader.Read())
+            using (MySqlDataReader reader = command.ExecuteReader())
             {
-                return null;
-            }
-
-            Account account = new Account()
-            {
-                Id = (uint)(long)reader["account_id"],
-                UserName = reader["user_name"] as string,
-                Password = reader["user_password"] as byte[],
-                CdKey = reader["user_cdkey"] as byte[],
-                Email = reader["user_email"] as string,
-                UserData = reader["user_data"] as byte[],
-                PlayerName = reader["player_nickname"] as string,
+                if (reader.Read())
+                {
+                    Account account = new Account()
+                    {
+                        Id = uint.Parse(reader["account_id"].ToString()),
+                        UserName = reader["user_name"] as string,
+                        Password = reader["user_password"] as byte[],
+                        CdKey = reader["user_cdkey"] as byte[],
+                        Email = reader["user_email"] as string,
+                        UserData = reader["user_data"] as byte[],
+                        PlayerName = reader["player_nickname"] as string,
+                    };
+                    reader.Close();
+                    command.Dispose();
+                    return account;
+                }
+                else {
+                    _program.LogDebug("Failure on Account creation");
+                }              
             };
-
-            reader.Close();
-            command.Dispose();
-
-            return account;
+            return null;
         }
 
-        public void SetNickname(SQLiteConnection sql, uint id, string name)
+        public void SetNickname(MySqlConnection mysql, uint id, string name)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            SQLiteParameter para2 = new SQLiteParameter();
-
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("UPDATE accounts SET player_nickname = ? WHERE account_id = ?;");
+            cmd.AppendLine("UPDATE accounts SET player_nickname=?p1 WHERE account_id=?p2;");
 
-            para1.Value = name;
-            para2.Value = id;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
+            MySqlCommand command = mysql.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = cmd.ToString();
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
-            command.Parameters.Add(para2);
+            command.Parameters.Add(new MySqlParameter("p1", name));
+            command.Parameters.Add(new MySqlParameter("p2", id));
 
             command.ExecuteNonQuery();
 
@@ -162,22 +169,19 @@ namespace S2Lobby
             transaction.Dispose();
         }
 
-        public void SetEmail(SQLiteConnection sql, uint id, string email)
+        public void SetEmail(MySqlConnection mysql, uint id, string email)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            SQLiteParameter para2 = new SQLiteParameter();
-
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("UPDATE accounts SET user_email = ? WHERE account_id = ?;");
+            cmd.AppendLine("UPDATE accounts SET user_email=?p1 WHERE account_id=?p2;");
 
-            para1.Value = email;
-            para2.Value = id;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
+            MySqlCommand command = mysql.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = cmd.ToString();
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
-            command.Parameters.Add(para2);
+            command.Parameters.Add(new MySqlParameter("p1", email));
+            command.Parameters.Add(new MySqlParameter("p2", id));
 
             command.ExecuteNonQuery();
 
@@ -187,22 +191,19 @@ namespace S2Lobby
             transaction.Dispose();
         }
 
-        public void SetUserData(SQLiteConnection sql, uint id, byte[] data)
+        public void SetUserData(MySqlConnection mysql, uint id, byte[] data)
         {
-            SQLiteParameter para1 = new SQLiteParameter();
-            SQLiteParameter para2 = new SQLiteParameter();
-
             StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("UPDATE accounts SET user_data = ? WHERE account_id = ?;");
+            cmd.AppendLine("UPDATE accounts SET user_data=?p1 WHERE account_id=?p2;");
 
-            para1.Value = data;
-            para2.Value = id;
+            MySqlTransaction transaction = mysql.BeginTransaction();
 
-            SQLiteTransaction transaction = sql.BeginTransaction();
+            MySqlCommand command = mysql.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = cmd.ToString();
 
-            SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql, transaction);
-            command.Parameters.Add(para1);
-            command.Parameters.Add(para2);
+            command.Parameters.Add(new MySqlParameter("p1", data));
+            command.Parameters.Add(new MySqlParameter("p2", id));
 
             command.ExecuteNonQuery();
 
@@ -210,15 +211,6 @@ namespace S2Lobby
 
             command.Dispose();
             transaction.Dispose();
-        }
-
-        private static long GetLastAutoIncrement(SQLiteConnection sql)
-        {
-            string cmd= "SELECT last_insert_rowid();";
-            SQLiteCommand command2 = new SQLiteCommand(cmd, sql);
-            long scalar = (long) command2.ExecuteScalar();
-            command2.Dispose();
-            return scalar;
         }
     }
 

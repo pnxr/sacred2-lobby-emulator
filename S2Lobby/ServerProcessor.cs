@@ -18,7 +18,7 @@ namespace S2Lobby
         public ServerProcessor(Program program, uint connection) : base(program, connection)
         {
             Logger = new PayloadLogger(program.LogDebug);
-            Database = new Database();
+            Database = new Database(program);
         }
 
         public override void Close()
