@@ -84,7 +84,21 @@ namespace S2Lobby
         public Account Get(SQLiteConnection sql, string name)
         {
             SQLiteParameter para1 = new SQLiteParameter();
+            para1.Value = name.ToUpperInvariant();
 
+            return GetInternal(sql, "user_name_upper", para1);
+        }
+
+        public Account Get(SQLiteConnection sql, uint id)
+        {
+            SQLiteParameter para1 = new SQLiteParameter();
+            para1.Value = id;
+
+            return GetInternal(sql, "account_id", para1);
+        }
+
+        private Account GetInternal(SQLiteConnection sql, string field, SQLiteParameter para1)
+        {
             StringBuilder cmd = new StringBuilder();
             cmd.AppendLine("SELECT ");
             cmd.AppendLine("    account_id");
@@ -95,9 +109,7 @@ namespace S2Lobby
             cmd.AppendLine(",   user_data");
             cmd.AppendLine(",   player_nickname");
             cmd.AppendLine("FROM accounts");
-            cmd.AppendLine("WHERE user_name_upper = ?;");
-
-            para1.Value = name.ToUpperInvariant();
+            cmd.AppendLine($"WHERE {field} = ?;");
 
             SQLiteCommand command = new SQLiteCommand(cmd.ToString(), sql);
             command.Parameters.Add(para1);
@@ -119,6 +131,7 @@ namespace S2Lobby
                 PlayerName = reader["player_nickname"] as string,
             };
 
+            reader.Close();
             command.Dispose();
 
             return account;

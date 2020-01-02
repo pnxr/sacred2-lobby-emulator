@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+
 using S2Library.Connection;
 using S2Library.Protocol;
 
@@ -13,8 +14,8 @@ namespace S2Lobby
             new Program().Run();
         }
 
-        private const uint LobbyPort = 6800;
-        public const uint ChatPort = 6801;
+        private uint LobbyPort { get; set; } = 6800;
+        public uint ChatPort { get; private set; } = 6801;
 
         public string Ip { get; private set; } = "127.0.0.1";
 
@@ -36,6 +37,7 @@ namespace S2Lobby
 
         public static readonly Accounts Accounts = new Accounts();
         public static readonly Servers Servers = new Servers();
+        public static readonly Channels Channels = new Channels();
 
         private void Run()
         {
@@ -45,6 +47,23 @@ namespace S2Lobby
                 if (lines.Length > 0)
                 {
                     Ip = lines[0];
+                }
+                if (lines.Length > 1)
+                {
+                    uint port;
+                    if (UInt32.TryParse(lines[1], out port))
+                    {
+                        LobbyPort = port;
+                        ChatPort = port + 1;
+                    }
+                }
+                if (lines.Length > 2)
+                {
+                    uint port;
+                    if (UInt32.TryParse(lines[2], out port))
+                    {
+                        ChatPort = port;
+                    }
                 }
             }
 
@@ -61,6 +80,7 @@ namespace S2Lobby
 
             Accounts.Init(this);
             Servers.Init(this);
+            Channels.Init(this);
 
             _lobbyConnectionManager.Connected += LobbyConnectionManagerOnConnected;
             _lobbyConnectionManager.ConnectFailed += LobbyConnectionManagerOnConnectFailed;
@@ -183,9 +203,9 @@ namespace S2Lobby
                 NetworkProcessor incomingLobbyProcessor;
                 if (!_incomingLobbyProcessors.TryRemove(args.Conn.Id, out incomingLobbyProcessor))
                 {
-                    incomingLobbyProcessor.Close();
                     Log($" Can't remove from incoming lobby processors: {args.Conn.Id}");
                 }
+                incomingLobbyProcessor.Close();
 
                 ConcurrentQueue<byte[]> outgoingLobbyQueue;
                 if (!_outgoingLobbyQueues.TryRemove(args.Conn.Id, out outgoingLobbyQueue))
@@ -210,9 +230,9 @@ namespace S2Lobby
                 NetworkProcessor incomingChatProcessor;
                 if (!_incomingChatProcessors.TryRemove(args.Conn.Id, out incomingChatProcessor))
                 {
-                    incomingChatProcessor.Close();
                     Log($" Can't remove from incoming chat processors: {args.Conn.Id}");
                 }
+                incomingChatProcessor.Close();
 
                 ConcurrentQueue<byte[]> outgoingChatQueue;
                 if (!_outgoingChatQueues.TryRemove(args.Conn.Id, out outgoingChatQueue))
@@ -237,9 +257,9 @@ namespace S2Lobby
                 NetworkProcessor incomingLobbyProcessor;
                 if (!_incomingLobbyProcessors.TryRemove(args.Conn.Id, out incomingLobbyProcessor))
                 {
-                    incomingLobbyProcessor.Close();
                     Log($" Can't remove from incoming lobby processors: {args.Conn.Id}");
                 }
+                incomingLobbyProcessor.Close();
 
                 ConcurrentQueue<byte[]> outgoingLobbyQueue;
                 if (!_outgoingLobbyQueues.TryRemove(args.Conn.Id, out outgoingLobbyQueue))
@@ -264,9 +284,9 @@ namespace S2Lobby
                 NetworkProcessor incomingChatProcessor;
                 if (!_incomingChatProcessors.TryRemove(args.Conn.Id, out incomingChatProcessor))
                 {
-                    incomingChatProcessor.Close();
                     Log($" Can't remove from incoming chat processors: {args.Conn.Id}");
                 }
+                incomingChatProcessor.Close();
 
                 ConcurrentQueue<byte[]> outgoingChatQueue;
                 if (!_outgoingChatQueues.TryRemove(args.Conn.Id, out outgoingChatQueue))
@@ -384,23 +404,23 @@ namespace S2Lobby
             }
         }
 
-        public NetworkProcessor GetLobbyProcessor(uint connId)
+        public LobbyProcessor GetLobbyProcessor(uint connId)
         {
             NetworkProcessor incomingLobbyProcessor;
             if (_incomingLobbyProcessors.TryGetValue(connId, out incomingLobbyProcessor))
             {
-                return incomingLobbyProcessor;
+                return incomingLobbyProcessor as LobbyProcessor;
             }
 
             return null;
         }
 
-        public NetworkProcessor GetChatProcessor(uint connId)
+        public ChatProcessor GetChatProcessor(uint connId)
         {
             NetworkProcessor incomingChatProcessor;
             if (_incomingChatProcessors.TryGetValue(connId, out incomingChatProcessor))
             {
-                return incomingChatProcessor;
+                return incomingChatProcessor as ChatProcessor;
             }
 
             return null;

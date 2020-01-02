@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Channels.cs" />
     <Compile Include="Accounts.cs" />
     <Compile Include="ChatProcessor.cs" />
     <Compile Include="Database.cs" />

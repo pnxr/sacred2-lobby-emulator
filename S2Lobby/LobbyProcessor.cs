@@ -1,5 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+
 using S2Library.Protocol;
 
 namespace S2Lobby
@@ -23,6 +25,7 @@ namespace S2Lobby
             if (_server != null)
             {
                 Program.Servers.Remove(_server.Id);
+                NotifyUnlistServer(_server.Id, _server.Running);
                 _server = null;
             }
         }
@@ -80,6 +83,12 @@ namespace S2Lobby
                     return true;
                 case Payloads.Types.UpdateServerInfo:
                     HandleUpdateServerInfo((UpdateServerInfo)payload, writer);
+                    return true;
+                case Payloads.Types.PlayerJoinedServer:
+                    HandlePlayerJoinedServer((PlayerJoinedServer)payload, writer);
+                    return true;
+                case Payloads.Types.PlayerLeftServer:
+                    HandlePlayerLeftServer((PlayerLeftServer)payload, writer);
                     return true;
                 default:
                     return false;
@@ -345,6 +354,16 @@ namespace S2Lobby
             _server.Running = payload.Running;
             _server.LockedConfig = payload.LockedConfig;
             _server.Data = payload.Data;
+            if (payload.Cipher != null)
+            {
+                byte[] serverPassword = Crypto.HandleCipher(payload.Cipher, SessionKey);
+                int length = System.Array.FindIndex(serverPassword, b => b == 0);
+                string password = System.Text.Encoding.ASCII.GetString(serverPassword, 0, length);
+                Program.LogDebug($" Server password is: {password}");
+
+                _server.NeedsPassword = true;
+                _server.Password = password;
+            }
 
             SendServerUpdates();
 
@@ -398,7 +417,7 @@ namespace S2Lobby
             resultPayload1.ServerSubtype = server.SubType;
             resultPayload1.Version = "1.1";
             resultPayload1.MaxPlayers = server.MaxPlayers;
-            resultPayload1.CurPlayers = 0;
+            resultPayload1.CurPlayers = (ushort)server.Players.Count;
             resultPayload1.MaxSpectators = 0;
             resultPayload1.CurSpectators = 0;
             resultPayload1.AiPlayers = 0;
@@ -410,6 +429,7 @@ namespace S2Lobby
             resultPayload1.Running = server.Running;
             resultPayload1.LockedConfig = server.LockedConfig;
             resultPayload1.Data = server.Data; // Crypto.BytesFromHexString("25000000785e63607264d26567c00f001041007a");
+            resultPayload1.PasswordRequired = server.NeedsPassword;
             resultPayload1.TicketId = ticketId;
             return resultPayload1;
         }
@@ -507,6 +527,21 @@ namespace S2Lobby
             _server.Running = payload.Running;
             _server.LockedConfig = payload.LockedConfig;
             _server.Data = payload.Data;
+            if (payload.Cipher == null)
+            {
+                _server.NeedsPassword = false;
+                _server.Password = null;
+            }
+            else
+            {
+                byte[] serverPassword = Crypto.HandleCipher(payload.Cipher, SessionKey);
+                int length = System.Array.FindIndex(serverPassword, b => b == 0);
+                string password = System.Text.Encoding.ASCII.GetString(serverPassword, 0, length);
+                Program.LogDebug($" Server password is: {password}");
+
+                _server.NeedsPassword = true;
+                _server.Password = password;
+            }
 
             SendServerUpdates();
 
@@ -517,6 +552,29 @@ namespace S2Lobby
             SendReply(writer, resultPayload2);
         }
 
+        private void HandlePlayerJoinedServer(PlayerJoinedServer payload, PayloadWriter writer)
+        {
+            if (_server == null)
+            {
+                return;
+            }
+
+            _server.Players.TryAdd(payload.PermId, Connection);
+            SendServerUpdates();
+        }
+
+        private void HandlePlayerLeftServer(PlayerLeftServer payload, PayloadWriter writer)
+        {
+            if (_server == null)
+            {
+                return;
+            }
+
+            uint dummy;
+            _server.Players.TryRemove(payload.PermId, out dummy);
+            SendServerUpdates();
+        }
+
         private void SendServerUpdates()
         {
             ServerInfo serverInfo = CreateServerInfoPayload(_server, 0);
@@ -524,6 +582,18 @@ namespace S2Lobby
             foreach (KeyValuePair<uint, uint> server in servers)
             {
                 SendToLobbyConnection(server.Key, serverInfo);
+            }
+        }
+
+        private void NotifyUnlistServer(uint serverId, bool running)
+        {
+            UnlistServer unlistInfo = Payloads.CreatePayload<UnlistServer>();
+            unlistInfo.ServerId = serverId;
+            unlistInfo.Running = running;
+            KeyValuePair<uint, uint>[] servers = ServerUpdateReceivers.ToArray();
+            foreach (KeyValuePair<uint, uint> server in servers)
+            {
+                SendToLobbyConnection(server.Key, unlistInfo);
             }
         }
     }
