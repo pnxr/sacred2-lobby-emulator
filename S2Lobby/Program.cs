@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+
 using S2Library.Connection;
 using S2Library.Protocol;
 
@@ -42,6 +43,7 @@ namespace S2Lobby
 
         public static readonly Accounts Accounts = new Accounts();
         public static readonly Servers Servers = new Servers();
+        public static readonly Channels Channels = new Channels();
 
         private void Run()
         {
@@ -98,6 +100,7 @@ namespace S2Lobby
 
             Accounts.Init(this);
             Servers.Init(this);
+            Channels.Init(this);
 
             _lobbyConnectionManager.Connected += LobbyConnectionManagerOnConnected;
             _lobbyConnectionManager.ConnectFailed += LobbyConnectionManagerOnConnectFailed;
@@ -421,23 +424,23 @@ namespace S2Lobby
             }
         }
 
-        public NetworkProcessor GetLobbyProcessor(uint connId)
+        public LobbyProcessor GetLobbyProcessor(uint connId)
         {
             NetworkProcessor incomingLobbyProcessor;
             if (_incomingLobbyProcessors.TryGetValue(connId, out incomingLobbyProcessor))
             {
-                return incomingLobbyProcessor;
+                return incomingLobbyProcessor as LobbyProcessor;
             }
 
             return null;
         }
 
-        public NetworkProcessor GetChatProcessor(uint connId)
+        public ChatProcessor GetChatProcessor(uint connId)
         {
             NetworkProcessor incomingChatProcessor;
             if (_incomingChatProcessors.TryGetValue(connId, out incomingChatProcessor))
             {
-                return incomingChatProcessor;
+                return incomingChatProcessor as ChatProcessor;
             }
 
             return null;

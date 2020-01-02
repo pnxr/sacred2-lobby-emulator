@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
@@ -117,7 +118,7 @@ namespace S2Library.Protocol
             return result;
         }
 
-        public static byte[] HandleUser(byte[] cipher, byte[] secretKey)
+        public static byte[] HandleCipher(byte[] cipher, byte[] secretKey)
         {
 
             TwofishEngine engine = new TwofishEngine();
@@ -154,14 +155,12 @@ namespace S2Library.Protocol
 
             TwofishEngine engine = new TwofishEngine();
             CtrBlockCipher blockCipher = new CtrBlockCipher(engine);
-            PaddedBufferedBlockCipher bufferedBlockCipher = new PaddedBufferedBlockCipher(blockCipher, new ZeroBytePadding());
             KeyParameter secret = new KeyParameter(sharedSecret);
 
             ParametersWithIV key = new ParametersWithIV(secret, iv);
-            bufferedBlockCipher.Init(true, key);
+            blockCipher.Init(true, key);
 
             byte[] result = new byte[iv.Length + sessionKey.Length];
-            bufferedBlockCipher.ProcessBytes(sessionKey, 0, sessionKey.Length, result, 16);
             Array.Copy(iv, result, iv.Length);
 
             int pos = 0;

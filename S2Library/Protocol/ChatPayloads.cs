@@ -7,17 +7,17 @@ namespace S2Library.Protocol
     {
         public enum ChatTypes : ushort
         {
-            UnknownType00 = 0,
+            ChannelInfo = 0, // UnknownType00
             UnknownType01 = 1,
-            UnknownType02 = 2,
-            UnknownType03 = 3,
+            ChatMessage = 2, // UnknownType02
+            ChatReply = 3, // UnknownType03
             UnknownType04 = 4,
             UnknownType05 = 5,
             CreateChannel = 7, // UnknownType07
             UnknownType08 = 8,
-            UnknownType09 = 9,
+            ChannelJoined = 9, // UnknownType09
             UnknownType10 = 10,
-            UnknownType11 = 11,
+            StatusReply = 11, // UnknownType11
         }
 
         private static readonly Dictionary<Type, ChatTypes> ChatPayloadTypes = new Dictionary<Type, ChatTypes>();
@@ -25,17 +25,17 @@ namespace S2Library.Protocol
 
         static ChatPayloads()
         {
-            ChatPayloadTypes.Add(typeof(ChatPayload0), ChatTypes.UnknownType00);
+            ChatPayloadTypes.Add(typeof(ChannelInfo), ChatTypes.ChannelInfo); // ChatPayload0
             ChatPayloadTypes.Add(typeof(ChatPayload1), ChatTypes.UnknownType01);
-            ChatPayloadTypes.Add(typeof(ChatPayload2), ChatTypes.UnknownType02);
-            ChatPayloadTypes.Add(typeof(ChatPayload3), ChatTypes.UnknownType03);
+            ChatPayloadTypes.Add(typeof(ChatMessage), ChatTypes.ChatMessage); // ChatPayload2
+            ChatPayloadTypes.Add(typeof(ChatReply), ChatTypes.ChatReply); // ChatPayload3
             ChatPayloadTypes.Add(typeof(ChatPayload4), ChatTypes.UnknownType04);
             ChatPayloadTypes.Add(typeof(ChatPayload5), ChatTypes.UnknownType05);
             ChatPayloadTypes.Add(typeof(CreateChannel), ChatTypes.CreateChannel); // ChatPayload7
             ChatPayloadTypes.Add(typeof(ChatPayload8), ChatTypes.UnknownType08);
-            ChatPayloadTypes.Add(typeof(ChatPayload9), ChatTypes.UnknownType09);
+            ChatPayloadTypes.Add(typeof(ChannelJoined), ChatTypes.ChannelJoined); // ChatPayload9
             ChatPayloadTypes.Add(typeof(ChatPayload10), ChatTypes.UnknownType10);
-            ChatPayloadTypes.Add(typeof(ChatPayload11), ChatTypes.UnknownType11);
+            ChatPayloadTypes.Add(typeof(StatusReply), ChatTypes.StatusReply); // ChatPayload11
 
             foreach (KeyValuePair<Type, ChatTypes> payloadType in ChatPayloadTypes)
             {
@@ -77,6 +77,7 @@ namespace S2Library.Protocol
     {
         public ushort Magic;
         public ushort Type;
+        public ushort Id;
 
         public const ushort PayloadMagic = 0x0062;
 
@@ -84,25 +85,24 @@ namespace S2Library.Protocol
         {
             serializer.Serialize(nameof(Magic), ref Magic);
             serializer.Serialize(nameof(Type), ref Type);
+            serializer.Serialize(nameof(Id), ref Id);
         }
     }
 
-    public class ChatPayload0 : ChatPayloadPrefix
+    public class ChannelInfo : ChatPayloadPrefix // ChatPayload0
     {
-        public ushort Id;
         public byte[] Data;
         public uint CellId;
         public uint TicketId;
 
-        public ChatPayload0()
+        public ChannelInfo()
         {
-            Id = (ushort) ChatPayloads.ChatTypes.UnknownType00;
+            Id = (ushort) ChatPayloads.ChatTypes.ChannelInfo;
         }
 
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(Data), ref Data);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -111,7 +111,6 @@ namespace S2Library.Protocol
 
     public class ChatPayload1 : ChatPayloadPrefix
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
@@ -124,16 +123,14 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
         }
     }
 
-    public class ChatPayload2 : ChatPayloadPrefix
+    public class ChatMessage : ChatPayloadPrefix // ChatPayload2
     {
-        public ushort Id;
         public ushort ModuleId;
         public ushort MessageId;
         public uint Except;
@@ -142,15 +139,14 @@ namespace S2Library.Protocol
         public bool Self;
         public bool Ispropset;
 
-        public ChatPayload2()
+        public ChatMessage()
         {
-            Id = (ushort)ChatPayloads.ChatTypes.UnknownType02;
+            Id = (ushort)ChatPayloads.ChatTypes.ChatMessage;
         }
 
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(ModuleId), ref ModuleId);
             serializer.Serialize(nameof(MessageId), ref MessageId);
             serializer.Serialize(nameof(Except), ref Except);
@@ -161,24 +157,22 @@ namespace S2Library.Protocol
         }
     }
 
-    public class ChatPayload3 : ChatPayloadPrefix
+    public class ChatReply : ChatPayloadPrefix // ChatPayload3
     {
-        public ushort Id;
         public ushort MessageId;
         public byte[] Data;
         public uint CellId;
         public uint FromId;
         public bool Ispropset;
 
-        public ChatPayload3()
+        public ChatReply()
         {
-            Id = (ushort)ChatPayloads.ChatTypes.UnknownType03;
+            Id = (ushort)ChatPayloads.ChatTypes.ChatReply;
         }
 
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(MessageId), ref MessageId);
             serializer.Serialize(nameof(Data), ref Data);
             serializer.Serialize(nameof(CellId), ref CellId);
@@ -189,7 +183,6 @@ namespace S2Library.Protocol
 
     public class ChatPayload4 : ChatPayloadPrefix
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
@@ -202,7 +195,6 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
@@ -211,7 +203,6 @@ namespace S2Library.Protocol
 
     public class ChatPayload5 : ChatPayloadPrefix
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
@@ -224,7 +215,6 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
@@ -233,7 +223,6 @@ namespace S2Library.Protocol
 
     public class CreateChannel : ChatPayloadPrefix // ChatPayload7
     {
-        public ushort Id;
         public byte[] Data;
         public uint TicketId;
 
@@ -245,7 +234,6 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(Data), ref Data);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -253,7 +241,6 @@ namespace S2Library.Protocol
 
     public class ChatPayload8 : ChatPayloadPrefix
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
@@ -266,29 +253,26 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
         }
     }
 
-    public class ChatPayload9 : ChatPayloadPrefix
+    public class ChannelJoined : ChatPayloadPrefix // ChatPayload9
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
 
-        public ChatPayload9()
+        public ChannelJoined()
         {
-            Id = (ushort)ChatPayloads.ChatTypes.UnknownType09;
+            Id = (ushort)ChatPayloads.ChatTypes.ChannelJoined;
         }
 
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
@@ -297,7 +281,6 @@ namespace S2Library.Protocol
 
     public class ChatPayload10 : ChatPayloadPrefix
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort Option;
@@ -310,36 +293,33 @@ namespace S2Library.Protocol
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
         }
     }
 
-    public class ChatPayload11 : ChatPayloadPrefix
+    public class StatusReply : ChatPayloadPrefix // ChatPayload11
     {
-        public ushort Id;
         public uint CellId;
         public uint TicketId;
         public ushort ResultId;
 
-        public ChatPayload11()
+        public StatusReply()
         {
-            Id = (ushort)ChatPayloads.ChatTypes.UnknownType11;
+            Id = (ushort)ChatPayloads.ChatTypes.StatusReply;
         }
 
         public override void Serialize(Serializer serializer)
         {
             base.Serialize(serializer);
-            serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(ResultId), ref ResultId);
         }
     }
 
-    public class UnknownData
+    public class ChannelData
     {
         public string Publish;
         public string Name;
@@ -352,7 +332,7 @@ namespace S2Library.Protocol
         public bool Hidden;
         public uint CreatorPid;
 
-        public UnknownData()
+        public ChannelData()
         {
             Publish = "SC";
         }

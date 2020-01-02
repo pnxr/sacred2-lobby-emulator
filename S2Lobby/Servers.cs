@@ -92,5 +92,9 @@ namespace S2Lobby
         public bool Running;
         public bool LockedConfig;
         public byte[] Data;
+        public bool NeedsPassword;
+        public string Password;
+
+        public ConcurrentDictionary<uint, uint> Players = new ConcurrentDictionary<uint, uint>();
     }
 }

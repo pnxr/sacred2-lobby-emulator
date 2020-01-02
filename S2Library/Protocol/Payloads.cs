@@ -8,11 +8,11 @@ namespace S2Library.Protocol
         public enum Types : ushort
         {
             UnknownType001 = 1,
-            UnknownType002 = 2,
+            ChatPayload = 2, // UnknownType002
             UnknownType003 = 3,
             UnknownType004 = 4,
-            UnknownType005 = 5,
-            UnknownType006 = 6,
+            ChatUserInfo = 5, // UnknownType005
+            ChatDisconnected = 6, // UnknownType006
             UnknownType007 = 7,
             UnknownType008 = 8,
             UnknownType009 = 9,
@@ -23,7 +23,7 @@ namespace S2Library.Protocol
             UnknownType014 = 14,
             UnknownType015 = 15,
             UnknownType016 = 16,
-            UnknownType017 = 17,
+            JoinChatChannel = 17, // UnknownType017
             UnknownType018 = 18,
             UnknownType019 = 19,
             UnknownType020 = 20,
@@ -141,7 +141,7 @@ namespace S2Library.Protocol
             UnknownType143 = 143,
             UnknownType144 = 144,
             UnknownType145 = 145,
-            UnknownType146 = 146,
+            PlayerJoinedServer = 146, // UnknownType146
             UnknownType147 = 147,
             UnknownType148 = 148,
             UnknownType149 = 149,
@@ -183,9 +183,9 @@ namespace S2Library.Protocol
             UnknownType185 = 185,
             UnknownType186 = 186,
             UnknownType187 = 187,
-            VersionCheck = 188, // UnknownType188 
+            VersionCheck = 188, // UnknownType188
             GetChatServer = 189, // UnknownType189
-            UnknownType190 = 190,
+            PlayerLeftServer = 190, // UnknownType190
             UnknownType191 = 191,
             SendChatServerInfo = 192, // UnknownType192
             UnknownType193 = 193,
@@ -236,11 +236,11 @@ namespace S2Library.Protocol
         static Payloads()
         {
             PayloadTypes.Add(typeof(Payload1), Types.UnknownType001);
-            PayloadTypes.Add(typeof(Payload2), Types.UnknownType002);
+            PayloadTypes.Add(typeof(ChatPayload), Types.ChatPayload); // Payload2
             PayloadTypes.Add(typeof(Payload3), Types.UnknownType003);
             PayloadTypes.Add(typeof(Payload4), Types.UnknownType004);
-            PayloadTypes.Add(typeof(Payload5), Types.UnknownType005);
-            PayloadTypes.Add(typeof(Payload6), Types.UnknownType006);
+            PayloadTypes.Add(typeof(ChatUserInfo), Types.ChatUserInfo); // Payload5
+            PayloadTypes.Add(typeof(ChatDisconnected), Types.ChatDisconnected); // Payload6
             PayloadTypes.Add(typeof(Payload7), Types.UnknownType007);
             PayloadTypes.Add(typeof(Payload8), Types.UnknownType008);
             PayloadTypes.Add(typeof(Payload9), Types.UnknownType009);
@@ -251,7 +251,7 @@ namespace S2Library.Protocol
             PayloadTypes.Add(typeof(Payload14), Types.UnknownType014);
             PayloadTypes.Add(typeof(Payload15), Types.UnknownType015);
             PayloadTypes.Add(typeof(Payload16), Types.UnknownType016);
-            PayloadTypes.Add(typeof(Payload17), Types.UnknownType017);
+            PayloadTypes.Add(typeof(JoinChatChannel), Types.JoinChatChannel); // Payload17
             PayloadTypes.Add(typeof(Payload18), Types.UnknownType018);
             PayloadTypes.Add(typeof(Payload19), Types.UnknownType019);
             PayloadTypes.Add(typeof(Payload20), Types.UnknownType020);
@@ -369,7 +369,7 @@ namespace S2Library.Protocol
             PayloadTypes.Add(typeof(Payload143), Types.UnknownType143);
             PayloadTypes.Add(typeof(Payload144), Types.UnknownType144);
             PayloadTypes.Add(typeof(Payload145), Types.UnknownType145);
-            PayloadTypes.Add(typeof(Payload146), Types.UnknownType146);
+            PayloadTypes.Add(typeof(PlayerJoinedServer), Types.PlayerJoinedServer); // Payload146
             PayloadTypes.Add(typeof(Payload147), Types.UnknownType147);
             PayloadTypes.Add(typeof(Payload148), Types.UnknownType148);
             PayloadTypes.Add(typeof(Payload149), Types.UnknownType149);
@@ -413,7 +413,7 @@ namespace S2Library.Protocol
             PayloadTypes.Add(typeof(Payload187), Types.UnknownType187);
             PayloadTypes.Add(typeof(VersionCheck), Types.VersionCheck); // Payload188
             PayloadTypes.Add(typeof(GetChatServer), Types.GetChatServer); // Payload189
-            PayloadTypes.Add(typeof(Payload190), Types.UnknownType190);
+            PayloadTypes.Add(typeof(PlayerLeftServer), Types.PlayerLeftServer); // Payload190
             PayloadTypes.Add(typeof(Payload191), Types.UnknownType191);
             PayloadTypes.Add(typeof(SendChatServerInfo), Types.SendChatServerInfo); // Payload192
             PayloadTypes.Add(typeof(Payload193), Types.UnknownType193);
@@ -508,11 +508,20 @@ namespace S2Library.Protocol
 
         public const ushort PayloadMagic = 0x26B6;
 
-        public virtual void Serialize(Serializer serializer)
+        public virtual void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            serializer.Serialize(nameof(Magic), ref Magic);
-            serializer.Serialize(nameof(Type1), ref Type1);
+            if (fullHeader)
+            {
+                serializer.Serialize(nameof(Magic), ref Magic);
+                serializer.Serialize(nameof(Type1), ref Type1);
+            }
             serializer.Serialize(nameof(Type2), ref Type2);
+
+            if (!fullHeader)
+            {
+                Magic = PayloadMagic;
+                Type1 = Type2;
+            }
         }
     }
 
@@ -524,9 +533,9 @@ namespace S2Library.Protocol
     {
         public uint Data;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Data), ref Data);
         }
     }
@@ -538,16 +547,16 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("ticket_id",8);
 //    (**(code**)(* piVar1 + 8))("from_id",8);
 //    (**(code**)(* unaff_EDI + 4))(2,piVar1);
-    public class Payload2 : PayloadPrefix
+    public class ChatPayload : PayloadPrefix // Payload2
     {
         public uint Mode;
         public string Txt;
         public uint TicketId;
         public uint FromId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Mode), ref Mode);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -573,9 +582,9 @@ namespace S2Library.Protocol
         public uint ToId;
         public string FromName;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Mode), ref Mode);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(CellId), ref CellId);
@@ -603,9 +612,9 @@ namespace S2Library.Protocol
         public uint Patchlevel;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Nick), ref Nick);
             serializer.Serialize(nameof(Password), ref Password);
             serializer.Serialize(nameof(CdKey), ref CdKey);
@@ -621,15 +630,15 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("cell_id",8);
 //    (**(code**)(* piVar1 + 4))("nick",2,0x100);
 //    (**(code**)(* unaff_EDI + 4))(5,piVar1);
-    public class Payload5 : PayloadPrefix
+    public class ChatUserInfo : PayloadPrefix // Payload5
     {
         public uint PermId;
         public uint CellId;
         public string Nick;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(Nick), ref Nick);
@@ -641,14 +650,14 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("perm_id",8);
 //    (**(code**)(* piVar1 + 8))("cell_id",8);
 //    (**(code**)(* unaff_EDI + 4))(6,piVar1);
-    public class Payload6 : PayloadPrefix
+    public class ChatDisconnected : PayloadPrefix // Payload6
     {
         public uint PermId;
         public uint CellId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(CellId), ref CellId);
         }
@@ -664,9 +673,9 @@ namespace S2Library.Protocol
         public uint CellId;
         public uint UsrCount;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(UsrCount), ref UsrCount);
         }
@@ -680,9 +689,9 @@ namespace S2Library.Protocol
     {
         public uint CellId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
         }
     }
@@ -699,9 +708,9 @@ namespace S2Library.Protocol
         public uint MsgId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -718,9 +727,9 @@ namespace S2Library.Protocol
         public uint CellId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -762,9 +771,9 @@ namespace S2Library.Protocol
         public uint DeliveryDate;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
             serializer.Serialize(nameof(MsgType), ref MsgType);
@@ -793,9 +802,9 @@ namespace S2Library.Protocol
         public uint CellId;
         public byte[] Idlist;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(Idlist), ref Idlist);
         }
@@ -835,9 +844,9 @@ namespace S2Library.Protocol
         public uint DeliveryInterval;
         public uint DeliveryDate;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
             serializer.Serialize(nameof(MsgType), ref MsgType);
@@ -891,9 +900,9 @@ namespace S2Library.Protocol
         public uint DeliveryDate;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
             serializer.Serialize(nameof(MsgType), ref MsgType);
@@ -924,9 +933,9 @@ namespace S2Library.Protocol
         public uint MsgId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -945,9 +954,9 @@ namespace S2Library.Protocol
         public uint PermId;
         public uint FromId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(FromId), ref FromId);
@@ -962,7 +971,7 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 4))("password",2,0x20);
 //    (**(code**)(* piVar1 + 8))("from_id",8);
 //    (**(code**)(* unaff_EDI + 4))(0x11,piVar1);
-    public class Payload17 : PayloadPrefix
+    public class JoinChatChannel : PayloadPrefix // Payload17
     {
         public uint CellId;
         public uint TicketId;
@@ -970,9 +979,9 @@ namespace S2Library.Protocol
         public string Password;
         public uint FromId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Option), ref Option);
@@ -993,9 +1002,9 @@ namespace S2Library.Protocol
         public uint PermId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1010,9 +1019,9 @@ namespace S2Library.Protocol
     {
         public uint PermId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
         }
     }
@@ -1025,9 +1034,9 @@ namespace S2Library.Protocol
     {
         public uint GroupId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
         }
     }
@@ -1052,9 +1061,9 @@ namespace S2Library.Protocol
         public bool Active;
         public bool Banned;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Username), ref Username);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Userpwd), ref Userpwd);
@@ -1079,9 +1088,9 @@ namespace S2Library.Protocol
         public uint Grouptype;
         public uint GroupAccess;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Groupname), ref Groupname);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(Grouptype), ref Grouptype);
@@ -1107,9 +1116,9 @@ namespace S2Library.Protocol
         public bool Active;
         public bool Banned;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Username), ref Username);
             serializer.Serialize(nameof(Userpwd), ref Userpwd);
             serializer.Serialize(nameof(GroupId), ref GroupId);
@@ -1131,9 +1140,9 @@ namespace S2Library.Protocol
         public uint GroupAccess;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Groupname), ref Groupname);
             serializer.Serialize(nameof(GroupAccess), ref GroupAccess);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1160,9 +1169,9 @@ namespace S2Library.Protocol
         public bool Active;
         public bool Banned;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Username), ref Username);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Userpwd), ref Userpwd);
@@ -1187,9 +1196,9 @@ namespace S2Library.Protocol
         public uint GroupAccess;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Groupname), ref Groupname);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(GroupAccess), ref GroupAccess);
@@ -1205,9 +1214,9 @@ namespace S2Library.Protocol
     {
         public uint PermId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
         }
     }
@@ -1220,9 +1229,9 @@ namespace S2Library.Protocol
     {
         public uint GroupId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
         }
     }
@@ -1237,9 +1246,9 @@ namespace S2Library.Protocol
         public uint ResultId;
         public uint UsrGrpId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ResultId), ref ResultId);
             serializer.Serialize(nameof(UsrGrpId), ref UsrGrpId);
         }
@@ -1261,9 +1270,9 @@ namespace S2Library.Protocol
         public uint FromId;
         public uint PermId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Mode), ref Mode);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(CellId), ref CellId);
@@ -1282,9 +1291,9 @@ namespace S2Library.Protocol
         public string DeliveryTargetName;
         public string Body;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(DeliveryTargetName), ref DeliveryTargetName);
             serializer.Serialize(nameof(Body), ref Body);
         }
@@ -1328,9 +1337,9 @@ namespace S2Library.Protocol
         public uint DeliveryInterval;
         public uint DeliveryDate;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(MsgId), ref MsgId);
@@ -1358,9 +1367,9 @@ namespace S2Library.Protocol
     {
         public uint CellId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
         }
     }
@@ -1385,9 +1394,9 @@ namespace S2Library.Protocol
         public byte[] ItemData;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Owner), ref Owner);
             serializer.Serialize(nameof(ItemType), ref ItemType);
             serializer.Serialize(nameof(ItemName), ref ItemName);
@@ -1410,9 +1419,9 @@ namespace S2Library.Protocol
         public uint ItemPrize;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(ItemPrize), ref ItemPrize);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1429,9 +1438,9 @@ namespace S2Library.Protocol
         public uint ItemId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1449,9 +1458,9 @@ namespace S2Library.Protocol
         public uint ItemId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Netzone), ref Netzone);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1482,9 +1491,9 @@ namespace S2Library.Protocol
         public byte[] ItemData;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(Owner), ref Owner);
             serializer.Serialize(nameof(OwnerName), ref OwnerName);
@@ -1527,9 +1536,9 @@ namespace S2Library.Protocol
         public string Criterias;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Netzone), ref Netzone);
             serializer.Serialize(nameof(ItemType), ref ItemType);
             serializer.Serialize(nameof(OwnerName), ref OwnerName);
@@ -1553,9 +1562,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -1570,9 +1579,9 @@ namespace S2Library.Protocol
         public ushort Limit;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Limit), ref Limit);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1590,9 +1599,9 @@ namespace S2Library.Protocol
         public string Errormsg;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Errorcode), ref Errorcode);
             serializer.Serialize(nameof(Errormsg), ref Errormsg);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1611,9 +1620,9 @@ namespace S2Library.Protocol
         public uint NotificationType;
         public uint TargetMsgId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(NotificationType), ref NotificationType);
             serializer.Serialize(nameof(TargetMsgId), ref TargetMsgId);
@@ -1632,9 +1641,9 @@ namespace S2Library.Protocol
         public uint Buyer;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(Buyer), ref Buyer);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1653,9 +1662,9 @@ namespace S2Library.Protocol
         public uint Buyer;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(Buyer), ref Buyer);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1683,9 +1692,9 @@ namespace S2Library.Protocol
         public byte[] ItemData;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemId), ref ItemId);
             serializer.Serialize(nameof(Buyer), ref Buyer);
             serializer.Serialize(nameof(ItemType), ref ItemType);
@@ -1707,9 +1716,9 @@ namespace S2Library.Protocol
         public uint ItemsFound;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ItemsFound), ref ItemsFound);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1723,9 +1732,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -1740,9 +1749,9 @@ namespace S2Library.Protocol
         public string ValueName;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ValueName), ref ValueName);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1758,9 +1767,9 @@ namespace S2Library.Protocol
         public string ValueName;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ValueName), ref ValueName);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1776,9 +1785,9 @@ namespace S2Library.Protocol
         public string Value;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Value), ref Value);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1794,9 +1803,9 @@ namespace S2Library.Protocol
         public ushort Resultcode;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Resultcode), ref Resultcode);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1820,9 +1829,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
@@ -1842,9 +1851,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1860,9 +1869,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1878,9 +1887,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -1898,9 +1907,9 @@ namespace S2Library.Protocol
         public ushort AccessIndex;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(AccessIndex), ref AccessIndex);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -1937,9 +1946,9 @@ namespace S2Library.Protocol
         public uint TotalLogins;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Password), ref Password);
@@ -1985,9 +1994,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
@@ -2025,9 +2034,9 @@ namespace S2Library.Protocol
         public string ServerName;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(BuddyId), ref BuddyId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2055,9 +2064,9 @@ namespace S2Library.Protocol
         public byte Level;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2080,9 +2089,9 @@ namespace S2Library.Protocol
         public uint Access;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(AccessIndex), ref AccessIndex);
             serializer.Serialize(nameof(Access), ref Access);
@@ -2104,9 +2113,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Selection), ref Selection);
@@ -2124,9 +2133,9 @@ namespace S2Library.Protocol
         public uint GroupId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2144,9 +2153,9 @@ namespace S2Library.Protocol
         public ushort AccessIndex;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(AccessIndex), ref AccessIndex);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2171,9 +2180,9 @@ namespace S2Library.Protocol
         public string ServerName;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2197,9 +2206,9 @@ namespace S2Library.Protocol
         public byte Level;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Level), ref Level);
@@ -2221,9 +2230,9 @@ namespace S2Library.Protocol
         public uint Access;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(AccessIndex), ref AccessIndex);
             serializer.Serialize(nameof(Access), ref Access);
@@ -2249,9 +2258,9 @@ namespace S2Library.Protocol
         public uint Patchlevel;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Nick), ref Nick);
             serializer.Serialize(nameof(Password), ref Password);
             serializer.Serialize(nameof(CdKey), ref CdKey);
@@ -2275,9 +2284,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Selection), ref Selection);
@@ -2295,9 +2304,9 @@ namespace S2Library.Protocol
         public uint Count;
         public byte[] Data;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Count), ref Count);
             serializer.Serialize(nameof(Data), ref Data);
         }
@@ -2313,9 +2322,9 @@ namespace S2Library.Protocol
         public uint MsgType;
         public byte[] Data;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MsgType), ref MsgType);
             serializer.Serialize(nameof(Data), ref Data);
         }
@@ -2351,9 +2360,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
@@ -2379,9 +2388,9 @@ namespace S2Library.Protocol
         public uint CellId;
         public uint PermId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(PermId), ref PermId);
         }
@@ -2401,9 +2410,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
             serializer.Serialize(nameof(Data), ref Data);
@@ -2427,9 +2436,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2452,9 +2461,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
             serializer.Serialize(nameof(Data), ref Data);
@@ -2472,9 +2481,9 @@ namespace S2Library.Protocol
         public uint GuildId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2498,9 +2507,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
@@ -2534,9 +2543,9 @@ namespace S2Library.Protocol
         public byte GuildRole;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2569,9 +2578,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(Mail), ref Mail);
@@ -2594,9 +2603,9 @@ namespace S2Library.Protocol
         public byte Level;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Level), ref Level);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2617,9 +2626,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(Data), ref Data);
@@ -2641,9 +2650,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
             serializer.Serialize(nameof(Data), ref Data);
@@ -2675,9 +2684,9 @@ namespace S2Library.Protocol
         public uint PropertyMask;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Cipher), ref Cipher);
@@ -2706,9 +2715,9 @@ namespace S2Library.Protocol
         public byte Level;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(PropertyMask), ref PropertyMask);
             serializer.Serialize(nameof(Name), ref Name);
@@ -2733,9 +2742,9 @@ namespace S2Library.Protocol
         public uint PropertyMask;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Data), ref Data);
@@ -2762,9 +2771,9 @@ namespace S2Library.Protocol
         public uint PropertyMask;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
@@ -2784,9 +2793,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2802,9 +2811,9 @@ namespace S2Library.Protocol
         public uint GroupId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2820,9 +2829,9 @@ namespace S2Library.Protocol
         public uint CharId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2838,9 +2847,9 @@ namespace S2Library.Protocol
         public uint GuildId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -2860,9 +2869,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
@@ -2884,9 +2893,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
@@ -2906,9 +2915,9 @@ namespace S2Library.Protocol
         public uint BuddyId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(BuddyId), ref BuddyId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2927,9 +2936,9 @@ namespace S2Library.Protocol
         public uint BuddyId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(BuddyId), ref BuddyId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2948,9 +2957,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2969,9 +2978,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -2990,9 +2999,9 @@ namespace S2Library.Protocol
         public uint GuildId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3011,9 +3020,9 @@ namespace S2Library.Protocol
         public uint GuildId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3034,9 +3043,9 @@ namespace S2Library.Protocol
         public uint Access;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(GroupId), ref GroupId);
             serializer.Serialize(nameof(AccessIndex), ref AccessIndex);
             serializer.Serialize(nameof(Access), ref Access);
@@ -3052,9 +3061,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3069,9 +3078,9 @@ namespace S2Library.Protocol
         public string Txt;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3085,9 +3094,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3100,9 +3109,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3117,9 +3126,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public string Name;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(Name), ref Name);
         }
@@ -3133,9 +3142,9 @@ namespace S2Library.Protocol
     {
         public uint UserId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
         }
     }
@@ -3148,9 +3157,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3163,9 +3172,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3178,9 +3187,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3193,9 +3202,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3210,9 +3219,9 @@ namespace S2Library.Protocol
         public bool SendAll;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(SendAll), ref SendAll);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3226,9 +3235,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3241,9 +3250,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3256,9 +3265,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -3275,9 +3284,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3300,9 +3309,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(Banned), ref Banned);
@@ -3325,9 +3334,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MachineId), ref MachineId);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Selection), ref Selection);
@@ -3351,9 +3360,9 @@ namespace S2Library.Protocol
         public bool Active;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MachineId), ref MachineId);
             serializer.Serialize(nameof(Description), ref Description);
             serializer.Serialize(nameof(Ip), ref Ip);
@@ -3372,9 +3381,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3392,9 +3401,9 @@ namespace S2Library.Protocol
         public uint MachineId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(MachineId), ref MachineId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3411,9 +3420,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3429,9 +3438,9 @@ namespace S2Library.Protocol
         public uint CharId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3447,9 +3456,9 @@ namespace S2Library.Protocol
         public uint CharId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3469,9 +3478,9 @@ namespace S2Library.Protocol
         public string Filename;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(RestoreChars), ref RestoreChars);
             serializer.Serialize(nameof(Filename), ref Filename);
@@ -3491,9 +3500,9 @@ namespace S2Library.Protocol
         public string Filename;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Filename), ref Filename);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3514,9 +3523,9 @@ namespace S2Library.Protocol
         public uint Port;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Port), ref Port);
@@ -3534,9 +3543,9 @@ namespace S2Library.Protocol
         public uint PermId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3554,9 +3563,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3575,9 +3584,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3596,9 +3605,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3617,9 +3626,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3638,9 +3647,9 @@ namespace S2Library.Protocol
         public string Name;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3661,9 +3670,9 @@ namespace S2Library.Protocol
         public ushort PermIdType;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(PermIdType), ref PermIdType);
@@ -3676,14 +3685,14 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("perm_id",8);
 //    (**(code**)(* piVar1 + 8))("ticket_id",8);
 //    (**(code**)(* unaff_EDI + 4))(0x92,piVar1);
-    public class Payload146 : PayloadPrefix
+    public class PlayerJoinedServer : PayloadPrefix // Payload146
     {
         public uint PermId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3701,9 +3710,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(DeliveryTarget), ref DeliveryTarget);
             serializer.Serialize(nameof(Selection), ref Selection);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3722,9 +3731,9 @@ namespace S2Library.Protocol
         public byte Status;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MessageId), ref MessageId);
             serializer.Serialize(nameof(Status), ref Status);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3755,9 +3764,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(DeliveryTarget), ref DeliveryTarget);
             serializer.Serialize(nameof(MessageId), ref MessageId);
             serializer.Serialize(nameof(Creator), ref Creator);
@@ -3790,9 +3799,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(DeliveryTarget), ref DeliveryTarget);
             serializer.Serialize(nameof(Creator), ref Creator);
             serializer.Serialize(nameof(CreationTime), ref CreationTime);
@@ -3813,9 +3822,9 @@ namespace S2Library.Protocol
         public uint MessageId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MessageId), ref MessageId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3835,9 +3844,9 @@ namespace S2Library.Protocol
         public byte GuildRole;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(GuildId), ref GuildId);
             serializer.Serialize(nameof(GuildRole), ref GuildRole);
@@ -3859,9 +3868,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Errorcode), ref Errorcode);
             serializer.Serialize(nameof(Errormsg), ref Errormsg);
             serializer.Serialize(nameof(Id), ref Id);
@@ -3881,9 +3890,9 @@ namespace S2Library.Protocol
         public uint IgnoreId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(IgnoreId), ref IgnoreId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3902,9 +3911,9 @@ namespace S2Library.Protocol
         public uint IgnoreId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(IgnoreId), ref IgnoreId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -3921,9 +3930,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3939,9 +3948,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3957,9 +3966,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -3979,9 +3988,9 @@ namespace S2Library.Protocol
         public ushort Keypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(CdKey), ref CdKey);
             serializer.Serialize(nameof(Keypool), ref Keypool);
@@ -4011,9 +4020,9 @@ namespace S2Library.Protocol
         public string ServerName;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(IgnoreId), ref IgnoreId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -4037,9 +4046,9 @@ namespace S2Library.Protocol
         public int Index;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Kategory), ref Kategory);
             serializer.Serialize(nameof(Index), ref Index);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4060,9 +4069,9 @@ namespace S2Library.Protocol
         public int Value;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Kategory), ref Kategory);
             serializer.Serialize(nameof(Index), ref Index);
             serializer.Serialize(nameof(Value), ref Value);
@@ -4084,9 +4093,9 @@ namespace S2Library.Protocol
         public int Value;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Kategory), ref Kategory);
             serializer.Serialize(nameof(Index), ref Index);
             serializer.Serialize(nameof(Value), ref Value);
@@ -4108,9 +4117,9 @@ namespace S2Library.Protocol
         public int Value;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Kategory), ref Kategory);
             serializer.Serialize(nameof(Index), ref Index);
             serializer.Serialize(nameof(Value), ref Value);
@@ -4128,9 +4137,9 @@ namespace S2Library.Protocol
         public string Txt;
         public uint FromId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(FromId), ref FromId);
         }
@@ -4154,9 +4163,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(RoomId), ref RoomId);
             serializer.Serialize(nameof(ServerType), ref ServerType);
@@ -4178,9 +4187,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(MachineId), ref MachineId);
             serializer.Serialize(nameof(Selection), ref Selection);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4237,9 +4246,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Description), ref Description);
             serializer.Serialize(nameof(Ip), ref Ip);
@@ -4277,9 +4286,9 @@ namespace S2Library.Protocol
         public bool Running;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(Running), ref Running);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4340,9 +4349,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(OwnerId), ref OwnerId);
@@ -4392,9 +4401,9 @@ namespace S2Library.Protocol
         public uint Selection;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(SendAll), ref SendAll);
             serializer.Serialize(nameof(ServerType), ref ServerType);
             serializer.Serialize(nameof(RoomId), ref RoomId);
@@ -4414,9 +4423,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -4429,9 +4438,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -4454,9 +4463,9 @@ namespace S2Library.Protocol
         public byte[] Password;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Port), ref Port);
             serializer.Serialize(nameof(Name), ref Name);
@@ -4478,9 +4487,9 @@ namespace S2Library.Protocol
         public bool SendAll;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(SendAll), ref SendAll);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4497,9 +4506,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4543,9 +4552,9 @@ namespace S2Library.Protocol
         public uint PropertyMask;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(Description), ref Description);
             serializer.Serialize(nameof(Cipher), ref Cipher);
@@ -4575,9 +4584,9 @@ namespace S2Library.Protocol
         public uint Patchlevel;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Patchlevel), ref Patchlevel);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4593,9 +4602,9 @@ namespace S2Library.Protocol
         public string Txt;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Txt), ref Txt);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4609,9 +4618,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -4634,9 +4643,9 @@ namespace S2Library.Protocol
         public string Txt;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Starttime), ref Starttime);
             serializer.Serialize(nameof(Starttimestamp), ref Starttimestamp);
             serializer.Serialize(nameof(Time), ref Time);
@@ -4664,9 +4673,9 @@ namespace S2Library.Protocol
         public uint StartedGameservers;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Uptime), ref Uptime);
             serializer.Serialize(nameof(RegisteredUsers), ref RegisteredUsers);
             serializer.Serialize(nameof(Logins), ref Logins);
@@ -4686,9 +4695,9 @@ namespace S2Library.Protocol
         public byte Level;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Level), ref Level);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4704,9 +4713,9 @@ namespace S2Library.Protocol
         public bool Visible;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Visible), ref Visible);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4720,9 +4729,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -4741,9 +4750,9 @@ namespace S2Library.Protocol
         public uint UserId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(OldGroupId), ref OldGroupId);
             serializer.Serialize(nameof(NewGroupId), ref NewGroupId);
             serializer.Serialize(nameof(UserId), ref UserId);
@@ -4769,9 +4778,9 @@ namespace S2Library.Protocol
         public ushort NewKeypool;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(UserId), ref UserId);
             serializer.Serialize(nameof(OldCdKey), ref OldCdKey);
             serializer.Serialize(nameof(OldKeypool), ref OldKeypool);
@@ -4793,9 +4802,9 @@ namespace S2Library.Protocol
         public short Subversion;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Version), ref Version);
             serializer.Serialize(nameof(Subversion), ref Subversion);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4814,9 +4823,9 @@ namespace S2Library.Protocol
         public byte ServerSubtype;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ServerType), ref ServerType);
             serializer.Serialize(nameof(ServerSubtype), ref ServerSubtype);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -4828,14 +4837,14 @@ namespace S2Library.Protocol
 //    (**(code**)(* piVar1 + 8))("perm_id",8);
 //    (**(code**)(* piVar1 + 8))("ticket_id",8);
 //    (**(code**)(* unaff_EDI + 4))(0xbe,piVar1);
-    public class Payload190 : PayloadPrefix
+    public class PlayerLeftServer : PayloadPrefix // Payload190
     {
         public uint PermId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4855,9 +4864,9 @@ namespace S2Library.Protocol
         public ushort MaxPlayers;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Port), ref Port);
             serializer.Serialize(nameof(MaxPlayers), ref MaxPlayers);
@@ -4885,9 +4894,9 @@ namespace S2Library.Protocol
         public byte[] Data;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Port), ref Port);
@@ -4908,9 +4917,9 @@ namespace S2Library.Protocol
         public uint PermId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4930,9 +4939,9 @@ namespace S2Library.Protocol
         public uint UserAccess;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Username), ref Username);
             serializer.Serialize(nameof(UserAccess), ref UserAccess);
@@ -4950,9 +4959,9 @@ namespace S2Library.Protocol
         public byte[] Key;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Key), ref Key);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4968,9 +4977,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -4986,9 +4995,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -5004,9 +5013,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -5022,9 +5031,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -5040,9 +5049,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -5060,9 +5069,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5077,9 +5086,9 @@ namespace S2Library.Protocol
     {
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
     }
@@ -5094,9 +5103,9 @@ namespace S2Library.Protocol
         public byte[] Nonce;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Nonce), ref Nonce);
             serializer.Serialize(nameof(TicketId), ref TicketId);
         }
@@ -5114,9 +5123,9 @@ namespace S2Library.Protocol
         public byte[] Cipher;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5137,9 +5146,9 @@ namespace S2Library.Protocol
         public byte[] Nonce;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Cipher), ref Cipher);
             serializer.Serialize(nameof(Nonce), ref Nonce);
@@ -5159,9 +5168,9 @@ namespace S2Library.Protocol
         public uint ServerId;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5190,9 +5199,9 @@ namespace S2Library.Protocol
         public string Errormsg;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(ServerId), ref ServerId);
             serializer.Serialize(nameof(Ip), ref Ip);
@@ -5228,9 +5237,9 @@ namespace S2Library.Protocol
         public byte GuildRole;
         public byte[] Data;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Nonce), ref Nonce);
             serializer.Serialize(nameof(CharId), ref CharId);
             serializer.Serialize(nameof(Name), ref Name);
@@ -5257,9 +5266,9 @@ namespace S2Library.Protocol
         public uint TicketId;
         public byte[] Password;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Nonce), ref Nonce);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5283,9 +5292,9 @@ namespace S2Library.Protocol
         public byte Status;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(MessageText), ref MessageText);
@@ -5310,9 +5319,9 @@ namespace S2Library.Protocol
         public byte Status;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(MessageText), ref MessageText);
@@ -5339,9 +5348,9 @@ namespace S2Library.Protocol
         public byte Status;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(Name), ref Name);
             serializer.Serialize(nameof(PasswordRequired), ref PasswordRequired);
@@ -5371,9 +5380,9 @@ namespace S2Library.Protocol
         public byte Status;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(Name), ref Name);
@@ -5396,9 +5405,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5419,9 +5428,9 @@ namespace S2Library.Protocol
         public string Password;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(Password), ref Password);
@@ -5441,9 +5450,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5462,9 +5471,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5483,9 +5492,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5506,9 +5515,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(FromId), ref FromId);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Id), ref Id);
@@ -5528,9 +5537,9 @@ namespace S2Library.Protocol
         public uint Id;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Id), ref Id);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5551,9 +5560,9 @@ namespace S2Library.Protocol
         public uint UserAccess;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Nick), ref Nick);
             serializer.Serialize(nameof(UserAccess), ref UserAccess);
@@ -5579,9 +5588,9 @@ namespace S2Library.Protocol
         public uint Custom1;
         public uint Custom2;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermIdA), ref PermIdA);
             serializer.Serialize(nameof(PermIdB), ref PermIdB);
             serializer.Serialize(nameof(Result), ref Result);
@@ -5603,9 +5612,9 @@ namespace S2Library.Protocol
         public uint PermIdB;
         public uint ResultId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermIdA), ref PermIdA);
             serializer.Serialize(nameof(PermIdB), ref PermIdB);
             serializer.Serialize(nameof(ResultId), ref ResultId);
@@ -5622,9 +5631,9 @@ namespace S2Library.Protocol
         public ushort Ranktable;
         public uint PermId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ranktable), ref Ranktable);
             serializer.Serialize(nameof(PermId), ref PermId);
         }
@@ -5656,9 +5665,9 @@ namespace S2Library.Protocol
         public uint Tie;
         public uint Disconnected;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ranktable), ref Ranktable);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Nick), ref Nick);
@@ -5684,9 +5693,9 @@ namespace S2Library.Protocol
         public uint Rangestart;
         public uint Rangeend;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ranktable), ref Ranktable);
             serializer.Serialize(nameof(Rangestart), ref Rangestart);
             serializer.Serialize(nameof(Rangeend), ref Rangeend);
@@ -5709,9 +5718,9 @@ namespace S2Library.Protocol
         public uint Count;
         public byte[] Rankdata;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ranktable), ref Ranktable);
             serializer.Serialize(nameof(Rangestart), ref Rangestart);
             serializer.Serialize(nameof(Rangeend), ref Rangeend);
@@ -5732,9 +5741,9 @@ namespace S2Library.Protocol
         public uint Port;
         public uint TicketId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(Ip), ref Ip);
             serializer.Serialize(nameof(Port), ref Port);
             serializer.Serialize(nameof(TicketId), ref TicketId);
@@ -5753,9 +5762,9 @@ namespace S2Library.Protocol
         public uint TicketId;
         public uint FromId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(CellId), ref CellId);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(FromId), ref FromId);
@@ -5774,9 +5783,9 @@ namespace S2Library.Protocol
         public uint ConnectionPid;
         public uint UserPid;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(ConnectionPid), ref ConnectionPid);
             serializer.Serialize(nameof(UserPid), ref UserPid);
@@ -5799,9 +5808,9 @@ namespace S2Library.Protocol
         public uint TicketId;
         public uint ResultId;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(PermId), ref PermId);
             serializer.Serialize(nameof(Username), ref Username);
             serializer.Serialize(nameof(UserAccess), ref UserAccess);
@@ -5820,9 +5829,9 @@ namespace S2Library.Protocol
         public uint TicketId;
         public string Name;
 
-        public override void Serialize(Serializer serializer)
+        public override void Serialize(Serializer serializer, bool fullHeader = true)
         {
-            base.Serialize(serializer);
+            base.Serialize(serializer, fullHeader);
             serializer.Serialize(nameof(TicketId), ref TicketId);
             serializer.Serialize(nameof(Name), ref Name);
         }

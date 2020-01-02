@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+
 using S2Library.Protocol;
 
 namespace S2Lobby
@@ -197,7 +198,11 @@ namespace S2Lobby
                 writer.Write(handshake.Unknown1);
 
                 SendReply(MessageContainer.Types.HandShakeConnected, writeStream);
-                HandleInitialReply(writeStream);
+
+                writer.Close();
+                writeStream.Close();
+
+                HandleInitialReply();
             }
             else if (Message.Type == MessageContainer.Types.ApplicationMessage)
             {
@@ -208,6 +213,12 @@ namespace S2Lobby
                 BinaryWriter writer = new BinaryWriter(writeStream);
 
                 HandleMessage(reader, writer);
+
+                writer.Close();
+                writeStream.Close();
+
+                reader.Close();
+                readStream.Close();
             }
             else if (Message.Type == MessageContainer.Types.Ping)
             {
@@ -219,7 +230,7 @@ namespace S2Lobby
             }
         }
 
-        protected virtual void HandleInitialReply(MemoryStream replyStream)
+        protected virtual void HandleInitialReply()
         {
         }
 

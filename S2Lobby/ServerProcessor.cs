@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text;
+
 using S2Library.Protocol;
 
 namespace S2Lobby
@@ -12,6 +13,7 @@ namespace S2Lobby
         protected Account Account;
 
         private byte[] _sharedSecret;
+        protected byte[] SessionKey;
 
         public ServerProcessor(Program program, uint connection) : base(program, connection)
         {
@@ -26,7 +28,7 @@ namespace S2Lobby
 
         protected bool SendToLobbyConnection(uint connection, PayloadPrefix message)
         {
-            NetworkProcessor processor = Program.GetLobbyProcessor(connection);
+            LobbyProcessor processor = Program.GetLobbyProcessor(connection);
             if (processor == null)
             {
                 return false;
@@ -165,7 +167,7 @@ namespace S2Lobby
         {
             byte[] loginCipher = payload.Cipher;
 
-            byte[] result = Crypto.HandleUser(loginCipher, _sharedSecret);
+            byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
             Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
@@ -249,7 +251,8 @@ namespace S2Lobby
                 return;
             }
 
-            byte[] secret = Crypto.HandleSessionKey(Crypto.CreateSecretKey(), _sharedSecret);
+            SessionKey = Crypto.CreateSecretKey();
+            byte[] secret = Crypto.HandleSessionKey(SessionKey, _sharedSecret);
 
             LoginReplyCipher resultPayload2 = Payloads.CreatePayload<LoginReplyCipher>();
             resultPayload2.PermId = Account.Id;
@@ -264,7 +267,7 @@ namespace S2Lobby
         {
             byte[] loginCipher = payload.Cipher;
 
-            byte[] result = Crypto.HandleUser(loginCipher, _sharedSecret);
+            byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
             Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
@@ -331,7 +334,8 @@ namespace S2Lobby
                 return;
             }
 
-            byte[] secret = Crypto.HandleSessionKey(Crypto.CreateSecretKey(), _sharedSecret);
+            SessionKey = Crypto.CreateSecretKey();
+            byte[] secret = Crypto.HandleSessionKey(SessionKey, _sharedSecret);
 
             LoginReplyCipher resultPayload = Payloads.CreatePayload<LoginReplyCipher>();
             resultPayload.PermId = Account.Id;
@@ -346,7 +350,7 @@ namespace S2Lobby
         {
             byte[] loginCipher = payload.Cipher;
 
-            byte[] result = Crypto.HandleUser(loginCipher, _sharedSecret);
+            byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
             Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
@@ -413,7 +417,8 @@ namespace S2Lobby
                 return;
             }
 
-            byte[] secret = Crypto.HandleSessionKey(Crypto.CreateSecretKey(), _sharedSecret);
+            SessionKey = Crypto.CreateSecretKey();
+            byte[] secret = Crypto.HandleSessionKey(SessionKey, _sharedSecret);
 
             LoginReplyCipher resultPayload = Payloads.CreatePayload<LoginReplyCipher>();
             resultPayload.PermId = Account.Id;

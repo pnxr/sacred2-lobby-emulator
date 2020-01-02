@@ -97,6 +97,16 @@ namespace S2Lobby
 
         public Account Get(MySqlConnection mysql, string name)
         {
+            return GetInternal(mysql, "user_name_upper", new MySqlParameter("searchCondition", name.ToUpperInvariant()));
+        }
+
+        public Account Get(MySqlConnection mysql, uint id)
+        {
+            return GetInternal(mysql, "account_id", new MySqlParameter("searchCondition", id));
+        }
+
+        private Account GetInternal(MySqlConnection mysql, string searchKey, MySqlParameter searchCondition)
+        {
             StringBuilder cmd = new StringBuilder();
             cmd.AppendLine("SELECT ");
             cmd.AppendLine("    account_id");
@@ -107,12 +117,10 @@ namespace S2Lobby
             cmd.AppendLine(",   user_data");
             cmd.AppendLine(",   player_nickname");
             cmd.AppendLine("FROM accounts");
-            cmd.AppendLine("WHERE user_name_upper=?p1;");
+            cmd.AppendLine($"WHERE {searchKey} = ?searchCondition;");
 
-            MySqlCommand command = mysql.CreateCommand();
-            command.CommandText = cmd.ToString();
-
-            command.Parameters.Add(new MySqlParameter("p1", name.ToUpperInvariant()));
+            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
+            command.Parameters.Add(searchCondition);
 
             using (MySqlDataReader reader = command.ExecuteReader())
             {
@@ -132,8 +140,10 @@ namespace S2Lobby
                     command.Dispose();
                     return account;
                 }
-            }
-
+                else {
+                    _program.LogDebug("Failure on Account creation");
+                }              
+            };
             return null;
         }
 
