@@ -277,7 +277,9 @@ namespace S2Lobby
         private void HandleSelectNickname(SelectNickname payload, PayloadWriter writer)
         {
             uint playerId = payload.CharId;
-            if (playerId != Account.Id)
+
+            Account account = Program.Accounts.Get(Database.Connection, playerId);
+            if (account == null)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
                 resultPayload1.Errorcode = 1;
@@ -288,10 +290,10 @@ namespace S2Lobby
             }
 
             SelectNicknameReply resultPayload2 = Payloads.CreatePayload<SelectNicknameReply>();
-            resultPayload2.CharId = Account.Id;
-            resultPayload2.Name = Account.PlayerName;
-            resultPayload2.OwnerId = Account.Id;
-            resultPayload2.OwnerName = Account.UserName;
+            resultPayload2.CharId = account.Id;
+            resultPayload2.Name = account.PlayerName;
+            resultPayload2.OwnerId = account.Id;
+            resultPayload2.OwnerName = account.UserName;
             resultPayload2.GuildId = 0;
             resultPayload2.GuildName = null;
             resultPayload2.GuildRole = 0;
