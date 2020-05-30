@@ -5,13 +5,27 @@ using System.IO;
 using S2Library.Connection;
 using S2Library.Protocol;
 
+using System.Threading.Tasks;
+
 namespace S2Lobby
 {
     public class Program
     {
+        private static async Task<ConsoleKey> GetConsoleKeyEvent()
+        {
+            try
+            {
+                return await Task.Run(() => Console.ReadKey(true).Key);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         private static void Main(string[] args)
         {
-            new Program().Run();
+           new Program().Run().Wait();
         }
 
         private uint LobbyPort { get; set; } = 6800;
@@ -37,7 +51,6 @@ namespace S2Lobby
         private readonly ConcurrentDictionary<uint, NetworkProcessor> _incomingChatProcessors = new ConcurrentDictionary<uint, NetworkProcessor>();
         private readonly ConcurrentDictionary<uint, ConcurrentQueue<byte[]>> _outgoingChatQueues = new ConcurrentDictionary<uint, ConcurrentQueue<byte[]>>();
 
-        private bool _running = true;
         private StreamWriter _fileStream;
         private readonly object _sync = new object();
 
@@ -45,7 +58,7 @@ namespace S2Lobby
         public static readonly Servers Servers = new Servers();
         public static readonly Channels Channels = new Channels();
 
-        private void Run()
+        private async Task Run()
         {
             if (File.Exists("ip.cfg"))
             {
@@ -113,16 +126,7 @@ namespace S2Lobby
 
             Log($"[Lobby server running]");
             Log($" - press S to quit -");
-
-            while (_running)
-            {
-                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                if (keyInfo.Key == ConsoleKey.S)
-                {
-                    _running = false;
-                }
-            }
-
+            while(await GetConsoleKeyEvent() != ConsoleKey.S) {};
             Log($"[Lobby server shutting down]");
 
             _chatConnectionManager.Shutdown();
