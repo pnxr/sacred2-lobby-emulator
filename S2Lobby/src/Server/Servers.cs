@@ -16,7 +16,7 @@ namespace S2Lobby
         public void Init(Program program)
         {
             _program = program;
-            _program.Log($"[Server list ready]");
+            Logger.Log($"[Server list ready]");
         }
 
         private static uint GetId()
@@ -37,7 +37,7 @@ namespace S2Lobby
 
             if (!_servers.TryAdd(server.Id, server))
             {
-                _program.Log($"Can't register server {name}");
+                Logger.Log($"Can't register server {name}");
                 return 0;
             }
 

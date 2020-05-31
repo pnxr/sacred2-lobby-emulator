@@ -13,12 +13,12 @@ namespace S2Lobby
             _program = program;
 
             string connectionString =
-           "Server=" + program.DbIp + ";" +
-           "Port=" + program.DbPort + ";" +
-           "Database=" + program.DbName + ";" +
-           "User ID=" + program.DbUser + ";" +
-           "Password=" + program.DbPass + ";" +
-           "Pooling=false;";
+            "Server=" + Config.Get("database/mysql/ip") + ";" +
+           "Port=" + Config.Get("database/mysql/port") + ";" +
+           "Database=" + Config.Get("database/mysql/name") + ";" +
+           "User ID=" + Config.Get("database/mysql/user") + ";" +
+           "Password=" + Config.Get("database/mysql/pass") + ";" +
+           "Pooling=true";
             try
             {
                 MySqlConnection mysql = new MySqlConnection(connectionString);
@@ -60,11 +60,11 @@ namespace S2Lobby
                 mysql.Close();
                 mysql.Dispose();
 
-            _program.Log($"[Channel database ready]");
+                Logger.Log($"[Channel database ready]");
             }
             catch
             {
-                _program.Log($"[Failed to access channel database]");
+                Logger.Log($"[Failed to access channel database]");
                 System.Environment.Exit(1);
             }
         }

@@ -7,7 +7,7 @@ namespace S2Lobby
 {
     public class ServerProcessor : NetworkProcessor
     {
-        protected readonly Serializer Logger;
+        protected readonly Serializer _Logger;
 
         protected readonly Database Database;
         protected Account Account;
@@ -17,7 +17,7 @@ namespace S2Lobby
 
         public ServerProcessor(Program program, uint connection) : base(program, connection)
         {
-            Logger = new PayloadLogger(program.LogDebug);
+            _Logger = new PayloadLogger(Logger.LogDebug);
             Database = new Database(program);
         }
 
@@ -40,8 +40,8 @@ namespace S2Lobby
 
             message.Serialize(payloadWriter);
 
-            Program.LogDebug($" --- Payload sending to {connection}: {(Payloads.Types)message.Type2} ---");
-            message.Serialize(Logger);
+            Logger.LogDebug($" --- Payload sending to {connection}: {(Payloads.Types)message.Type2} ---");
+            message.Serialize(_Logger);
 
             processor.SendReply(MessageContainer.Types.ApplicationMessage, stream);
 
@@ -66,7 +66,7 @@ namespace S2Lobby
             {
                 if (prefix.Type1 != prefix.Type2)
                 {
-                    Program.Log($" Corrupt payload type, first is {prefix.Type1:X04} but second is {prefix.Type2:X04}");
+                    Logger.Log($" Corrupt payload type, first is {prefix.Type1:X04} but second is {prefix.Type2:X04}");
                 }
 
                 Payloads.Types payloadType = (Payloads.Types)prefix.Type2;
@@ -81,7 +81,7 @@ namespace S2Lobby
             {
                 if (prefix.Type1 != 0)
                 {
-                    Program.Log($" Corrupt payload chatTypes, is {prefix.Type1:X04} but expected 0");
+                    Logger.Log($" Corrupt payload chatTypes, is {prefix.Type1:X04} but expected 0");
                 }
 
                 ChatPayloads.ChatTypes chatPayloadType = (ChatPayloads.ChatTypes)prefix.Type2;
@@ -94,15 +94,15 @@ namespace S2Lobby
             }
             else
             {
-                Program.Log($" Incorrect payload magic, is {prefix.Magic:X04} but should be {PayloadPrefix.PayloadMagic:X04}");
+                Logger.Log($" Incorrect payload magic, is {prefix.Magic:X04} but should be {PayloadPrefix.PayloadMagic:X04}");
             }
 
         }
 
         protected virtual bool HandlePayloadType(Payloads.Types payloadType, PayloadPrefix payload, PayloadWriter writer)
         {
-            Program.LogDebug($" --- Payload received: {payloadType} ---");
-            payload.Serialize(Logger);
+            Logger.LogDebug($" --- Payload received: {payloadType} ---");
+            payload.Serialize(_Logger);
 
             switch (payloadType)
             {
@@ -128,8 +128,8 @@ namespace S2Lobby
 
         protected virtual void HandleChatPayloadType(ChatPayloads.ChatTypes chatPayloadType, ChatPayloadPrefix chatPayload, PayloadWriter payloadWriter)
         {
-            Program.LogDebug(" Unknown chat payload message received");
-            chatPayload.Serialize(Logger);
+            Logger.LogDebug(" Unknown chat payload message received");
+            chatPayload.Serialize(_Logger);
         }
 
         protected void SendReply(PayloadWriter writer, PayloadPrefix payload)
@@ -137,8 +137,8 @@ namespace S2Lobby
             payload.Serialize(writer);
             SendReply(MessageContainer.Types.ApplicationMessage, writer.BaseStream);
 
-            Program.LogDebug($" --- Payload sending: {(Payloads.Types)payload.Type2} ---");
-            payload.Serialize(Logger);
+            Logger.LogDebug($" --- Payload sending: {(Payloads.Types)payload.Type2} ---");
+            payload.Serialize(_Logger);
         }
 
         private void HandleVersionCheck(VersionCheck payload, PayloadWriter writer)
@@ -168,7 +168,7 @@ namespace S2Lobby
             byte[] loginCipher = payload.Cipher;
 
             byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
-            Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
+            Logger.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
             BinaryReader reader = new BinaryReader(stream);
@@ -260,7 +260,7 @@ namespace S2Lobby
             resultPayload2.TicketId = payload.TicketId;
             SendReply(writer, resultPayload2);
 
-            Program.Log($"Account created for {name}");
+            Logger.Log($"Account created for {name}");
         }
 
         private void HandleLoginUser(LoginUser payload, PayloadWriter writer)
@@ -268,7 +268,7 @@ namespace S2Lobby
             byte[] loginCipher = payload.Cipher;
 
             byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
-            Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
+            Logger.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
             BinaryReader reader = new BinaryReader(stream);
@@ -343,7 +343,7 @@ namespace S2Lobby
             resultPayload.TicketId = payload.TicketId;
             SendReply(writer, resultPayload);
 
-            Program.Log($"User {name} logged in");
+            Logger.Log($"User {name} logged in");
         }
 
         private void HandleLoginServer(LoginServer payload, PayloadWriter writer)
@@ -351,7 +351,7 @@ namespace S2Lobby
             byte[] loginCipher = payload.Cipher;
 
             byte[] result = Crypto.HandleCipher(loginCipher, _sharedSecret);
-            Program.LogDebug($" User: {Serializer.DumpBytes(result)}");
+            Logger.LogDebug($" User: {Serializer.DumpBytes(result)}");
 
             MemoryStream stream = new MemoryStream(result);
             BinaryReader reader = new BinaryReader(stream);
@@ -426,7 +426,7 @@ namespace S2Lobby
             resultPayload.TicketId = payload.TicketId;
             SendReply(writer, resultPayload);
 
-            Program.Log($"Server logged in for user {name}");
+            Logger.Log($"Server logged in for user {name}");
         }
     }
 }

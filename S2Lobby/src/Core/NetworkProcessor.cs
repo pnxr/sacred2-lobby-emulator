@@ -130,28 +130,28 @@ namespace S2Lobby
         {
             if (Message.Magic != MessageContainer.MagicNumber)
             {
-                Program.Log($" Incorrect packet magic, is {Message.Magic:X08} but should be {MessageContainer.MagicNumber:X08}");
+                Logger.Log($" Incorrect packet magic, is {Message.Magic:X08} but should be {MessageContainer.MagicNumber:X08}");
             }
             if (Message.To != MessageContainer.ConnectionServer)
             {
-                Program.Log($" Incorrect receiver id, is {Message.To:X08} but should be {MessageContainer.ConnectionServer:X08}");
+                Logger.Log($" Incorrect receiver id, is {Message.To:X08} but should be {MessageContainer.ConnectionServer:X08}");
             }
 
             uint crc32 = Crc32.Calculate(Message.Payload);
             if (crc32 != Message.PayloadChecksum)
             {
-                Program.Log($" Incorrect checksum, is {Message.PayloadChecksum:X08} but should be {crc32:X08}");
+                Logger.Log($" Incorrect checksum, is {Message.PayloadChecksum:X08} but should be {crc32:X08}");
             }
 
-            Program.LogDebug(" === Packet received ===");
-            Program.LogDebug($"  {nameof(Message.Magic)}: {Message.Magic:X08}");
-            Program.LogDebug($"  {nameof(Message.From)}: {Message.From:X08}");
-            Program.LogDebug($"  {nameof(Message.To)}: {Message.To:X08}");
-            Program.LogDebug($"  {nameof(Message.Type)}: {Message.Type}");
-            Program.LogDebug($"  {nameof(Message.Unknown1)}: {Message.Unknown1:X08}");
-            Program.LogDebug($"  {nameof(Message.PayloadSize)}: {Message.PayloadSize}");
-            Program.LogDebug($"  {nameof(Message.PayloadChecksum)}: {Message.PayloadChecksum:X08}");
-            Program.LogDebug($"  {nameof(Message.Payload)}: {Serializer.DumpBytes(Message.Payload)}");
+            Logger.LogDebug(" === Packet received ===");
+            Logger.LogDebug($"  {nameof(Message.Magic)}: {Message.Magic:X08}");
+            Logger.LogDebug($"  {nameof(Message.From)}: {Message.From:X08}");
+            Logger.LogDebug($"  {nameof(Message.To)}: {Message.To:X08}");
+            Logger.LogDebug($"  {nameof(Message.Type)}: {Message.Type}");
+            Logger.LogDebug($"  {nameof(Message.Unknown1)}: {Message.Unknown1:X08}");
+            Logger.LogDebug($"  {nameof(Message.PayloadSize)}: {Message.PayloadSize}");
+            Logger.LogDebug($"  {nameof(Message.PayloadChecksum)}: {Message.PayloadChecksum:X08}");
+            Logger.LogDebug($"  {nameof(Message.Payload)}: {Serializer.DumpBytes(Message.Payload)}");
 
             HandlePayload();
         }
@@ -162,11 +162,11 @@ namespace S2Lobby
             {
                 if (Message.Payload.Length != HandshakeMessage.MessageSize)
                 {
-                    Program.Log($" Incorrect handshake connect message size, is {Message.Payload.Length} but should be {HandshakeMessage.MessageSize}");
+                    Logger.Log($" Incorrect handshake connect message size, is {Message.Payload.Length} but should be {HandshakeMessage.MessageSize}");
                 }
                 if (Message.From != MessageContainer.ConnectionUnknown)
                 {
-                    Program.Log($" Incorrect sender id, is {Message.From:X08} but should be {MessageContainer.ConnectionUnknown:X08}");
+                    Logger.Log($" Incorrect sender id, is {Message.From:X08} but should be {MessageContainer.ConnectionUnknown:X08}");
                 }
 
                 MemoryStream readStream = new MemoryStream(Message.Payload);
@@ -181,7 +181,7 @@ namespace S2Lobby
 
                 if (handshake.Magic != HandshakeMessage.MagicNumber)
                 {
-                    Program.Log($" Incorrect handshake magic, is {handshake.Magic:X08} but should be {HandshakeMessage.MagicNumber:X08}");
+                    Logger.Log($" Incorrect handshake magic, is {handshake.Magic:X08} but should be {HandshakeMessage.MagicNumber:X08}");
                 }
 
                 handshake.Magic = HandshakeMessage.MagicNumber;
@@ -222,11 +222,11 @@ namespace S2Lobby
             }
             else if (Message.Type == MessageContainer.Types.Ping)
             {
-                Program.LogDebug($" PING");
+                Logger.LogDebug($" PING");
             }
             else
             {
-                Program.Log($" Unknown prefix message type: {Message.Type}");
+                Logger.Log($" Unknown prefix message type: {Message.Type}");
             }
         }
 
@@ -236,7 +236,7 @@ namespace S2Lobby
 
         protected virtual void HandleMessage(BinaryReader reader, BinaryWriter writer)
         {
-            Program.Log(" Unknown payload message received");
+            Logger.Log(" Unknown payload message received");
         }
 
         public void SendReply(MessageContainer.Types replyType, MemoryStream replyStream)
@@ -264,15 +264,15 @@ namespace S2Lobby
             writer.Write(replyMessage.PayloadChecksum);
             writer.Write(replyMessage.Payload);
 
-            Program.LogDebug(" === Packet sending ===");
-            Program.LogDebug($"  {nameof(replyMessage.Magic)}: {replyMessage.Magic:X08}");
-            Program.LogDebug($"  {nameof(replyMessage.From)}: {replyMessage.From:X08}");
-            Program.LogDebug($"  {nameof(replyMessage.To)}: {replyMessage.To:X08}");
-            Program.LogDebug($"  {nameof(replyMessage.Type)}: {replyMessage.Type}");
-            Program.LogDebug($"  {nameof(replyMessage.Unknown1)}: {replyMessage.Unknown1:X08}");
-            Program.LogDebug($"  {nameof(replyMessage.PayloadSize)}: {replyMessage.PayloadSize}");
-            Program.LogDebug($"  {nameof(replyMessage.PayloadChecksum)}: {replyMessage.PayloadChecksum:X08}");
-            Program.LogDebug($"  {nameof(replyMessage.Payload)}: {Serializer.DumpBytes(replyMessage.Payload)}");
+            Logger.LogDebug(" === Packet sending ===");
+            Logger.LogDebug($"  {nameof(replyMessage.Magic)}: {replyMessage.Magic:X08}");
+            Logger.LogDebug($"  {nameof(replyMessage.From)}: {replyMessage.From:X08}");
+            Logger.LogDebug($"  {nameof(replyMessage.To)}: {replyMessage.To:X08}");
+            Logger.LogDebug($"  {nameof(replyMessage.Type)}: {replyMessage.Type}");
+            Logger.LogDebug($"  {nameof(replyMessage.Unknown1)}: {replyMessage.Unknown1:X08}");
+            Logger.LogDebug($"  {nameof(replyMessage.PayloadSize)}: {replyMessage.PayloadSize}");
+            Logger.LogDebug($"  {nameof(replyMessage.PayloadChecksum)}: {replyMessage.PayloadChecksum:X08}");
+            Logger.LogDebug($"  {nameof(replyMessage.Payload)}: {Serializer.DumpBytes(replyMessage.Payload)}");
 
             byte[] replyBytes = writeStream.ToArray();
 

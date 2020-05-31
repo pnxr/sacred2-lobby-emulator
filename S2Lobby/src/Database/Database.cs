@@ -12,11 +12,11 @@ namespace S2Lobby
         public Database(Program program)
         {
             string connectionString =
-           "Server=" + program.DbIp + ";" +
-           "Port=" + program.DbPort + ";" +
-           "Database=" + program.DbName + ";" +
-           "User ID=" + program.DbUser + ";" +
-           "Password=" + program.DbPass + ";" +
+           "Server=" + Config.Get("database/mysql/ip") + ";" +
+           "Port=" + Config.Get("database/mysql/port") + ";" +
+           "Database=" + Config.Get("database/mysql/name") + ";" +
+           "User ID=" + Config.Get("database/mysql/user") + ";" +
+           "Password=" + Config.Get("database/mysql/pass") + ";" +
            "Pooling=true";
 
             Connection = new MySqlConnection(connectionString);

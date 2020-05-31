@@ -265,8 +265,8 @@ namespace S2Lobby
         {
             SendChatServerInfo resultPayload = Payloads.CreatePayload<SendChatServerInfo>();
             resultPayload.ServerId = 1;
-            resultPayload.Ip = Program.Ip;
-            resultPayload.Port = Program.ChatPort;
+            resultPayload.Ip = Config.Get("chat/ip");
+            resultPayload.Port = Config.GetInt("chat/port");
             resultPayload.ServerType = payload.ServerType;
             resultPayload.Version = null;
             resultPayload.Data = null;
@@ -344,7 +344,7 @@ namespace S2Lobby
             _server.ConnectionId = Connection;
             _server.OwnerId = Account.Id;
             _server.Description = payload.Description;
-            _server.Ip = payload.Ip ?? Program.Ip;
+            _server.Ip = payload.Ip ?? Config.Get("lobby/ip");
             _server.Port = payload.Port;
             _server.Type = payload.ServerType;
             _server.SubType = payload.ServerSubtype;
@@ -361,7 +361,7 @@ namespace S2Lobby
                 byte[] serverPassword = Crypto.HandleCipher(payload.Cipher, SessionKey);
                 int length = System.Array.FindIndex(serverPassword, b => b == 0);
                 string password = System.Text.Encoding.ASCII.GetString(serverPassword, 0, length);
-                Program.LogDebug($" Server password is: {password}");
+                Logger.LogDebug($" Server password is: {password}");
 
                 _server.NeedsPassword = true;
                 _server.Password = password;
@@ -539,7 +539,7 @@ namespace S2Lobby
                 byte[] serverPassword = Crypto.HandleCipher(payload.Cipher, SessionKey);
                 int length = System.Array.FindIndex(serverPassword, b => b == 0);
                 string password = System.Text.Encoding.ASCII.GetString(serverPassword, 0, length);
-                Program.LogDebug($" Server password is: {password}");
+                Logger.LogDebug($" Server password is: {password}");
 
                 _server.NeedsPassword = true;
                 _server.Password = password;
