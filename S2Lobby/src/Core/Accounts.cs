@@ -1,25 +1,19 @@
-﻿using System.Data;
-using System.Text;
-
+﻿using System.Text;
 using MySql.Data.MySqlClient;
 
 namespace S2Lobby
 {
     public class Accounts
     {
-        private Program _program;
-
         public void Init(Program program)
         {
-            _program = program;
-
             string connectionString =
-           "Server="+ program.DbIp+ ";" +
-           "Port=" + program.DbPort + ";" +
-           "Database=" + program.DbName + ";" +
-           "User ID=" + program.DbUser + ";" +
-           "Password=" + program.DbPass + ";" +
-           "Pooling=false;";
+            "Server=" + Config.Get("database/mysql/ip") + ";" +
+           "Port=" + Config.Get("database/mysql/port") + ";" +
+           "Database=" + Config.Get("database/mysql/name") + ";" +
+           "User ID=" + Config.Get("database/mysql/user") + ";" +
+           "Password=" + Config.Get("database/mysql/pass") + ";" +
+           "Pooling=true";
             try
             {
                 MySqlConnection mysql = new MySqlConnection(connectionString);
@@ -53,10 +47,11 @@ namespace S2Lobby
                 mysql.Close();
                 mysql.Dispose();
 
-                _program.Log($"[Account database ready]");
+                Logger.Log($"[Account database ready]");
             }
             catch {
-                _program.Log($"[Failed to access account database]");
+                Logger.Log($"[Failed to access account database]");
+                Logger.Log(connectionString);
                 System.Environment.Exit(1);
             }
         }
@@ -141,7 +136,7 @@ namespace S2Lobby
                     return account;
                 }
                 else {
-                    _program.LogDebug("Failure on Account creation");
+                    Logger.LogDebug("Failure on Account creation");
                 }              
             };
             return null;

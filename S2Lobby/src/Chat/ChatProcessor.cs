@@ -87,8 +87,8 @@ namespace S2Lobby
         {
             ChatPayloads.ChatTypes chatPayloadType = (ChatPayloads.ChatTypes)payload.Id;
 
-            Program.LogDebug($" --- Chat Payload sending: {chatPayloadType} ---");
-            payload.Serialize(Logger);
+            Logger.LogDebug($" --- Chat Payload sending: {chatPayloadType} ---");
+            payload.Serialize(_Logger);
 
             MemoryStream stream = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(stream);
@@ -126,8 +126,8 @@ namespace S2Lobby
 
         protected sealed override void HandleChatPayloadType(ChatPayloads.ChatTypes chatPayloadType, ChatPayloadPrefix chatPayload, PayloadWriter writer)
         {
-            Program.LogDebug($" --- Chat Payload received: {chatPayloadType} ---");
-            chatPayload.Serialize(Logger);
+            Logger.LogDebug($" --- Chat Payload received: {chatPayloadType} ---");
+            chatPayload.Serialize(_Logger);
 
             switch (chatPayloadType)
             {
@@ -181,7 +181,7 @@ namespace S2Lobby
             }
 
             connections.Add(Connection);
-            Program.LogDebug($" # User {Connection} joins channel {payload.CellId}");
+            Logger.LogDebug($" # User {Connection} joins channel {payload.CellId}");
 
             ChannelJoined joined = ChatPayloads.CreateChatPayload<ChannelJoined>();
             joined.CellId = payload.CellId;
@@ -289,8 +289,8 @@ namespace S2Lobby
         {
             ChannelData data = ReadChannelData(chatPayload.Data);
 
-            Program.LogDebug($" --- Chat Create Channel Data ---");
-            data.Serialize(Logger);
+            Logger.LogDebug($" --- Chat Create Channel Data ---");
+            data.Serialize(_Logger);
 
             StatusReply reply = ChatPayloads.CreateChatPayload<StatusReply>();
             reply.CellId = 3;
@@ -304,7 +304,7 @@ namespace S2Lobby
         {
             if (chatPayload.MessageId != (ushort)Payloads.Types.ChatPayload)
             {
-                Program.Log($" !!! Received chat message of invalid type {(Payloads.Types)chatPayload.MessageId}");
+                Logger.Log($" !!! Received chat message of invalid type {(Payloads.Types)chatPayload.MessageId}");
                 return;
             }
 
@@ -318,8 +318,8 @@ namespace S2Lobby
             reader.Close();
             stream.Close();
 
-            Program.LogDebug($" + Chat Payload +");
-            chat.Serialize(Logger);
+            Logger.LogDebug($" + Chat Payload +");
+            chat.Serialize(_Logger);
 
             ChatPayload resultPayload = Payloads.CreatePayload<ChatPayload>();
             resultPayload.Mode = chat.Mode;
