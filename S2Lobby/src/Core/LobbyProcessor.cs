@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-
+using MongoDB.Bson;
 using S2Library.Protocol;
 
 namespace S2Lobby
@@ -343,7 +343,7 @@ namespace S2Lobby
 
             _server.ConnectionId = Connection;
             _server.OwnerId = Account.Id;
-            _server.Description = payload.Description;
+            _server.Description = payload.Description ?? "";
             _server.Ip = payload.Ip ?? Config.Get("lobby/ip");
             _server.Port = payload.Port;
             _server.Type = payload.ServerType;
@@ -411,7 +411,7 @@ namespace S2Lobby
             resultPayload1.ServerId = server.Id;
             resultPayload1.Name = server.Name;
             resultPayload1.OwnerId = server.OwnerId;
-            resultPayload1.Description = server.Description;
+            resultPayload1.Description = server.Description ?? "";
             resultPayload1.Ip = server.Ip;
             resultPayload1.Port = server.Port;
             resultPayload1.PasswordRequired = false;
@@ -520,7 +520,7 @@ namespace S2Lobby
             }
 
             _server.Name = payload.Name;
-            _server.Description = payload.Description;
+            _server.Description = payload.Description ?? "";
             _server.MaxPlayers = payload.MaxPlayers;
             _server.RoomId = payload.RoomId;
             _server.Level = payload.Level;
@@ -583,7 +583,54 @@ namespace S2Lobby
             KeyValuePair<uint, uint>[] servers = ServerUpdateReceivers.ToArray();
             foreach (KeyValuePair<uint, uint> server in servers)
             {
-                SendToLobbyConnection(server.Key, serverInfo);
+                try {
+                    SendToLobbyConnection(server.Key, serverInfo);
+                    BsonDocument serverLogin = new BsonDocument {
+                        {"id" , serverInfo.ServerId},
+                        {"name" , serverInfo.Name},
+                        {"ownerId" , serverInfo.OwnerId},
+                        {"description" , serverInfo.Description},
+                        {"ip" , serverInfo.Ip},
+                        {"passwordRequired" , serverInfo.PasswordRequired},
+                        {"serverType" , serverInfo.ServerType},
+                        {"serverSubtype" , serverInfo.ServerSubtype},
+                        {"version" , serverInfo.Version},
+                        {"maxPlayers" , serverInfo.MaxPlayers},
+                        {"curPlayers" , serverInfo.CurPlayers},
+                        {"maxSpectators" , serverInfo.MaxSpectators},
+                        {"curSpectators" , serverInfo.CurSpectators},
+                        {"aiPlayers" , serverInfo.AiPlayers},
+                        {"roomId" , serverInfo.RoomId},
+                        {"level" , serverInfo.Level},
+                        {"gameMode" , serverInfo.GameMode},
+                        {"hardcore" , serverInfo.Hardcore},
+                        {"running" , serverInfo.Running},
+                        {"lockedConfig" , serverInfo.LockedConfig}
+                    };
+                    MongoDB.InsertOneAsync(Constants.ActiveServersCollection, serverLogin);
+                } catch(SystemException e) {
+                    Logger.Log("An error Occured while updateing following server data " + e.Message + " data: ");
+                    Logger.Log("id" + serverInfo.ServerId.ToString());
+                    Logger.Log("name " + serverInfo.Name);
+                    Logger.Log("ownerId " + serverInfo.OwnerId.ToString());
+                    Logger.Log("description " + serverInfo.Description);
+                    Logger.Log("ip " + serverInfo.Ip);
+                    Logger.Log("passwordRequired " + serverInfo.PasswordRequired.ToString());
+                    Logger.Log("serverType " + serverInfo.ServerType.ToString());
+                    Logger.Log("serverSubtype " + serverInfo.ServerSubtype.ToString());
+                    Logger.Log("version " + serverInfo.Version);
+                    Logger.Log("maxPlayers " + serverInfo.MaxPlayers.ToString());
+                    Logger.Log("curPlayers " + serverInfo.CurPlayers.ToString());
+                    Logger.Log("maxSpectators " + serverInfo.MaxSpectators.ToString());
+                    Logger.Log("curSpectators " + serverInfo.CurSpectators.ToString());
+                    Logger.Log("aiPlayers " + serverInfo.AiPlayers.ToString());
+                    Logger.Log("roomId " + serverInfo.RoomId.ToString());
+                    Logger.Log("level " + serverInfo.Level.ToString());
+                    Logger.Log("gameMode " + serverInfo.GameMode.ToString());
+                    Logger.Log("hardcore " + serverInfo.Hardcore.ToString());
+                    Logger.Log("running " + serverInfo.Running.ToString());
+                    Logger.Log("lockedConfig " + serverInfo.LockedConfig.ToString());
+                }
             }
         }
 

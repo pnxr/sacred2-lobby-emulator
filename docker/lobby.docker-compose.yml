@@ -3,14 +3,27 @@ version: '3.7'
 volumes:
   # lobby executable and config
   sacred2-lb-data:
-    driver: local-persist
+    driver: local
     driver_opts:
-      mountpoint: ${CONTAINER_VOLUME}/lb
-  # database storage
+      o: bind
+      type: none
+      device: ${CONTAINER_VOLUME}/lb
+  
+  # database storage lobby
   sacred2-db-data:
-    driver: local-persist
+    driver: local
     driver_opts:
-      mountpoint: ${CONTAINER_VOLUME}/db
+      o: bind
+      type: none
+      device: ${CONTAINER_VOLUME}/db
+
+  # database storage mongo
+  sacred2-daemon-db-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${CONTAINER_VOLUME}/daemon-db
 
 networks:
   sacred2-backend:
@@ -28,7 +41,7 @@ services:
     restart: unless-stopped
     image: mariadb
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
     volumes:
       - sacred2-db-data:/var/lib/mysql
@@ -36,7 +49,22 @@ services:
       - 127.0.0.1:30000:3306
     networks:
       sacred2-backend:
-        ipv4_address: 172.68.0.2
+        ipv4_address: ${MYSQL_IP}
+
+  sacred2-daemon-db:
+    container_name: ${CONTAINER_NAME}_daemon_db
+    image: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - sacred2-daemon-db-data:/data/db
+    ports:
+      - 127.0.0.1:30001:27017
+    networks:
+      sacred2-backend:
+        ipv4_address: ${MONGO_IP}
 
   sacred2-lobby:
     container_name: ${CONTAINER_NAME}_lb
@@ -50,14 +78,14 @@ services:
       - sacred2-lb-data:/data
     networks:
       sacred2-backend:
-        ipv4_address: 172.68.0.3
+        ipv4_address: ${LOBBY_IP}
       frontend:
     ports:
-      # allow access via all worldwide known sacred2 lobby ports to minimize necassary changes to default config of client         
-      - ${SERVER_IP}:6800:${LOBBY_PORT} #(EN/FR/IT/DE/AUS/Swiss/Nordic People/Portugal/Benelux/Greece/Australian/South Africa)
-      - ${SERVER_IP}:6850:${LOBBY_PORT} #(PL/CZ/HU/Slowak/) 
-      - ${SERVER_IP}:6810:${LOBBY_PORT} #(SP)
-      - ${SERVER_IP}:6820:${LOBBY_PORT} #(RUSS)
-      - ${SERVER_IP}:6900:${LOBBY_PORT} #(US,Canada,Mexico)
-      # allow lobby chat
-      - ${SERVER_IP}:6801:6801
+      # allow access via all worldwide known sacred2 lobby ports to minimize necassary changes to default config of client      
+      - 0.0.0.0:6800:${LOBBY_PORT}/tcp #(EN/FR/IT/DE/AUS/Swiss/Nordic People/Portugal/Benelux/Greece/Australian/South Africa)
+      - 0.0.0.0:6850:${LOBBY_PORT}/tcp #(PL/CZ/HU/Slowak/) 
+      - 0.0.0.0:6810:${LOBBY_PORT}/tcp #(SP)
+      - 0.0.0.0:6820:${LOBBY_PORT}/tcp #(RUSS)
+      - 0.0.0.0:6900:${LOBBY_PORT}/tcp #(US,Canada,Mexico)
+      - 0.0.0.0:6801:${LOBBY_CHAT_PORT}/udp #(Lobby Chat)
+      - 0.0.0.0:6801:${LOBBY_CHAT_PORT}/tcp #(Lobby Chat)

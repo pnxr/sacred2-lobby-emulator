@@ -82,5 +82,6 @@ namespace S2Lobby
 
         public static string Get(string key) => Config.Instance._Get(key);
         public static UInt32 GetInt(string key) => UInt32.Parse(Get(key));
+        public static Boolean GetBool(string key) => Get(key) == "true";
     }
 }

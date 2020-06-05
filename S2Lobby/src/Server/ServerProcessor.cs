@@ -1,6 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
-
+using MongoDB.Bson;
 using S2Library.Protocol;
 
 namespace S2Lobby
@@ -344,6 +345,15 @@ namespace S2Lobby
             SendReply(writer, resultPayload);
 
             Logger.Log($"User {name} logged in");
+            BsonDocument userLogin = new BsonDocument {
+                { "id", Account.Id.ToString() },
+                { "name", name },
+                { "activity", new BsonArray {
+                        new BsonDocument {{ "login", DateTime.Now.ToString() }},
+                        new BsonDocument {{ "logout", "0"}}
+                }}
+            };
+            MongoDB.InsertOneAsync(Constants.ActivePlayersCollection, userLogin);
         }
 
         private void HandleLoginServer(LoginServer payload, PayloadWriter writer)

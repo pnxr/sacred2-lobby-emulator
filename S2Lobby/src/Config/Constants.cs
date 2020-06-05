@@ -11,5 +11,9 @@
         public const string LoggerFileDefaultDebug = "lobby_net_dump.txt";
 
         public const string LoggerTimeFormat = @"MM\/dd\/yyyy hh:mm:ss";
+
+        public const string ActivePlayersCollection = "players";
+
+        public const string ActiveServersCollection = "servers";
     }
 }

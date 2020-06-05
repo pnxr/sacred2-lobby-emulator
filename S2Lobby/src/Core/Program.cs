@@ -48,6 +48,8 @@ namespace S2Lobby
 
         private async Task Run()
         {
+            var test = MongoDB.Get();
+
             Accounts.Init(this);
             Servers.Init(this);
             Channels.Init(this);
