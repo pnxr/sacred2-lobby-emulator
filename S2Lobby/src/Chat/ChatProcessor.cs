@@ -48,7 +48,7 @@ namespace S2Lobby
 
         protected override void HandleInitialReply()
         {
-            List<Channel> channels = Program.Channels.GetAll(Database.Connection);
+            List<Channel> channels = Program.Channels.GetAll();
 
             foreach (Channel channel in channels)
             {
@@ -152,7 +152,7 @@ namespace S2Lobby
 
         private void HandleVerifyChatLogin(VerifyChatLogin payload, PayloadWriter writer)
         {
-            Account = Program.Accounts.Get(Database.Connection, payload.PermId);
+            Account = Program.Accounts.Get(payload.PermId);
             if (Account == null || Account.Id != payload.PermId)
             {
                 StatusWithId resultPayload1 = Payloads.CreatePayload<StatusWithId>();

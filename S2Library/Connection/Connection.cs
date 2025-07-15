@@ -31,6 +31,23 @@ namespace S2Library.Connection
         public bool IsIncomingConnection => _socket?.IsIncoming ?? false;
         public bool IsConnected => _state == ConnectionState.Connected;
 
+        public string RemoteIpAddress
+        {
+            get
+            {
+                if (Socket?.RemoteAddress?.Address != null)
+                {
+                    var address = Socket.RemoteAddress.Address;
+                    if (address.IsIPv4MappedToIPv6)
+                    {
+                        return address.MapToIPv4().ToString();
+                    }
+                    return address.ToString();
+                }
+                return null;
+            }
+        }
+
         public byte[] RemoteIpHash => Socket?.RemoteAddress?.Address.GetAddressBytes();
 
         internal SocketWrapper Socket => _socket;

@@ -60,7 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="src\Database\Database.cs" />
     <Compile Include="src\Server\ServerProcessor.cs" />
     <Compile Include="src\Server\Servers.cs" />
     <Compile Include="src\Core\Accounts.cs" />
@@ -83,14 +82,7 @@
       <Name>S2Library</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\" />
-    <Folder Include="src\Database\" />
-    <Folder Include="src\Server\" />
-    <Folder Include="src\Config\" />
-    <Folder Include="src\Core\" />
-    <Folder Include="src\Chat\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyContent" AfterTargets="Build">
     <Copy SourceFiles="@(None)" Condition="'%(None.BuildDirFileAddTo)' == 'true'" ContinueOnError="true" DestinationFiles="$(OutputPath)%(None.BuildDirFileRenameTo)" />

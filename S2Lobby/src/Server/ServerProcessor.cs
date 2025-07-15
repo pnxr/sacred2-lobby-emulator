@@ -9,7 +9,6 @@ namespace S2Lobby
     {
         protected readonly Serializer _Logger;
 
-        protected readonly Database Database;
         protected Account Account;
 
         private byte[] _sharedSecret;
@@ -18,12 +17,10 @@ namespace S2Lobby
         public ServerProcessor(Program program, uint connection) : base(program, connection)
         {
             _Logger = new PayloadLogger(Logger.LogDebug);
-            Database = new Database(program);
         }
 
         public override void Close()
         {
-            Database.Dispose();
         }
 
         protected bool SendToLobbyConnection(uint connection, PayloadPrefix message)
@@ -229,7 +226,7 @@ namespace S2Lobby
             string name = Encoding.ASCII.GetString(nameBytes);
             byte[] password = Crypto.HashPassword(passwordBytes);
 
-            uint id = Program.Accounts.Create(Database.Connection, name, password, cdKey);
+            uint id = Program.Accounts.Create(name, password, cdKey);
             if (id == 0)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
@@ -240,7 +237,7 @@ namespace S2Lobby
                 return;
             }
 
-            Account = Program.Accounts.Get(Database.Connection, name);
+            Account = Program.Accounts.Get(name);
             if (Account == null)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
@@ -313,7 +310,7 @@ namespace S2Lobby
             string name = Encoding.ASCII.GetString(nameBytes);
             byte[] password = Crypto.HashPassword(passwordBytes);
 
-            Account = Program.Accounts.Get(Database.Connection, name);
+            Account = Program.Accounts.Get(name);
             if (Account == null)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
@@ -396,7 +393,7 @@ namespace S2Lobby
             string name = Encoding.ASCII.GetString(nameBytes);
             byte[] password = Crypto.HashPassword(passwordBytes);
 
-            Account = Program.Accounts.Get(Database.Connection, name);
+            Account = Program.Accounts.Get(name);
             if (Account == null)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
