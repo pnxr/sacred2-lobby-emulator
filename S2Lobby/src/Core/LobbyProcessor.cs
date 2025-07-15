@@ -111,7 +111,7 @@ namespace S2Lobby
                 return;
             }
 
-            Program.Accounts.SetNickname(Database.Connection, Account.Id, nickname);
+            Program.Accounts.SetNickname(Account.Id, nickname);
             Account.PlayerName = nickname;
 
             StatusWithId resultPayload2 = Payloads.CreatePayload<StatusWithId>();
@@ -138,14 +138,14 @@ namespace S2Lobby
             string mail = payload.Mail;
             if (mail != null)
             {
-                Program.Accounts.SetEmail(Database.Connection, accountId, mail);
+                Program.Accounts.SetEmail(accountId, mail);
                 Account.Email = mail;
             }
 
             byte[] nicknameData = payload.Data;
             if (nicknameData != null)
             {
-                Program.Accounts.SetUserData(Database.Connection, accountId, nicknameData);
+                Program.Accounts.SetUserData(accountId, nicknameData);
                 Account.UserData = nicknameData;
             }
 
@@ -278,7 +278,7 @@ namespace S2Lobby
         {
             uint playerId = payload.CharId;
 
-            Account account = Program.Accounts.Get(Database.Connection, playerId);
+            Account account = Program.Accounts.Get(playerId);
             if (account == null)
             {
                 StatusMsg resultPayload1 = Payloads.CreatePayload<StatusMsg>();
@@ -341,10 +341,28 @@ namespace S2Lobby
                 return;
             }
 
+            string ipAddress = payload.Ip;
+            if (string.IsNullOrEmpty(ipAddress))
+            {
+                S2Library.Connection.Connection clientConnection = Program.GetLobbyConnection(Connection);
+                ipAddress = clientConnection?.RemoteIpAddress;
+
+                if (!string.IsNullOrEmpty(ipAddress))
+                {
+                    Logger.LogDebug($"In-game server registration for '{name}': using remote endpoint IP {ipAddress}");
+                }
+                else
+                {
+                    ipAddress = Config.Get("lobby/ip");
+                    string connectionInfo = clientConnection != null ? "RemoteIpAddress is null" : "connection object is null";
+                    Logger.Log($"[WARNING] Could not determine remote IP for in-game server '{name}'. Falling back to lobby IP: {ipAddress}. Details: {connectionInfo}");
+                }
+            }
+
             _server.ConnectionId = Connection;
             _server.OwnerId = Account.Id;
             _server.Description = payload.Description;
-            _server.Ip = payload.Ip ?? Config.Get("lobby/ip");
+            _server.Ip = ipAddress;
             _server.Port = payload.Port;
             _server.Type = payload.ServerType;
             _server.SubType = payload.ServerSubtype;

@@ -1,32 +1,20 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
-
+using System.Threading;
 using S2Library.Connection;
 using S2Library.Protocol;
-
 using System.Threading.Tasks;
 
 namespace S2Lobby
 {
     public class Program
     {
-        private static async Task<ConsoleKey> GetConsoleKeyEvent()
-        {
-            try
-            {
-                return await Task.Run(() => Console.ReadKey(true).Key);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
         private static void Main(string[] args)
         {
             new Program().Run().Wait();
             ((IDisposable)Logger.Instance).Dispose();
+            Thread.Sleep(500);
             GC.Collect();
         }
 
@@ -48,6 +36,21 @@ namespace S2Lobby
 
         private async Task Run()
         {
+            var shutdownTcs = new TaskCompletionSource<object>();
+
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                Logger.Log("Shutdown signal received (Ctrl+C)...");
+                e.Cancel = true;
+                shutdownTcs.TrySetResult(null);
+            };
+
+            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+            {
+                Logger.Log("Shutdown signal received (ProcessExit)...");
+                shutdownTcs.TrySetResult(null);
+            };
+
             Accounts.Init(this);
             Servers.Init(this);
             Channels.Init(this);
@@ -62,8 +65,10 @@ namespace S2Lobby
             _chatConnectionManager.InitServer(null, Config.GetInt("chat/port"));
 
             Logger.Log($"[Lobby server running]");
-            Logger.Log($" - press S to quit -");
-            while(await GetConsoleKeyEvent() != ConsoleKey.S) {};
+            Logger.Log($" - Press Ctrl+C or use 'systemctl stop' to quit -");
+
+            await shutdownTcs.Task;
+
             Logger.Log($"[Lobby server shutting down]");
 
             _chatConnectionManager.Shutdown();
@@ -364,6 +369,15 @@ namespace S2Lobby
                 return incomingChatProcessor as ChatProcessor;
             }
 
+            return null;
+        }
+
+        public Connection GetLobbyConnection(uint connId)
+        {
+            if (_incomingLobbyConnections.TryGetValue(connId, out Connection connection))
+            {
+                return connection;
+            }
             return null;
         }
     }

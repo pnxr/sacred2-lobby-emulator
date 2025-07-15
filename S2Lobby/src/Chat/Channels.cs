@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
+using System;
 
 namespace S2Lobby
 {
@@ -8,218 +9,202 @@ namespace S2Lobby
     {
         private Program _program;
 
+        private string GetConnectionString()
+        {
+            return "Server=" + Config.Get("database/mysql/ip") + ";" +
+                   "Port=" + Config.Get("database/mysql/port") + ";" +
+                   "Database=" + Config.Get("database/mysql/name") + ";" +
+                   "User ID=" + Config.Get("database/mysql/user") + ";" +
+                   "Password=" + Config.Get("database/mysql/pass") + ";" +
+                   "Pooling=true";
+        }
+
         public void Init(Program program)
         {
             _program = program;
+            string connectionString = GetConnectionString();
 
-            string connectionString =
-            "Server=" + Config.Get("database/mysql/ip") + ";" +
-           "Port=" + Config.Get("database/mysql/port") + ";" +
-           "Database=" + Config.Get("database/mysql/name") + ";" +
-           "User ID=" + Config.Get("database/mysql/user") + ";" +
-           "Password=" + Config.Get("database/mysql/pass") + ";" +
-           "Pooling=true";
             try
             {
-                MySqlConnection mysql = new MySqlConnection(connectionString);
-                mysql.Open();
-
-                MySqlTransaction transaction = mysql.BeginTransaction();
-
-                StringBuilder cmd = new StringBuilder();
-                cmd.AppendLine("CREATE TABLE IF NOT EXISTS channels (");
-                cmd.AppendLine("    channel_id          INTEGER PRIMARY KEY AUTO_INCREMENT");
-                cmd.AppendLine(",   channel_name        VARCHAR(127) NOT NULL");
-                cmd.AppendLine(",   channel_subject     VARCHAR(255)");
-                cmd.AppendLine(",   channel_creator     VARCHAR(127) NOT NULL");
-                cmd.AppendLine(",   creator_id          INTEGER NOT NULL");
-                cmd.AppendLine(",   channel_protected   INTEGER NOT NULL DEFAULT(0)");
-                cmd.AppendLine(",   channel_password    VARCHAR(127)");
-                cmd.AppendLine(",   channel_hidden      INTEGER NOT NULL DEFAULT(0)");
-                cmd.AppendLine(");");
-
-                MySqlCommand command = mysql.CreateCommand();
-                command.CommandText = cmd.ToString();
-                command.Transaction = transaction;
-
-                if (command.ExecuteNonQuery() > 0)
+                using (MySqlConnection mysql = new MySqlConnection(connectionString))
                 {
-                    string cmd1 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('System', 'System Channel', 'Admin', 0, 1);";
-                    MySqlCommand command1 = new MySqlCommand(cmd1, mysql, transaction);
-                    command1.ExecuteNonQuery();
+                    mysql.Open();
 
-                    string cmd2 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('Lobby', 'Lobby Channel', 'Admin', 0, 1);";
-                    MySqlCommand command2 = new MySqlCommand(cmd2, mysql, transaction);
-                    command2.ExecuteNonQuery();
+                    using (MySqlTransaction transaction = mysql.BeginTransaction())
+                    {
+                        StringBuilder cmd = new StringBuilder();
+                        cmd.AppendLine("CREATE TABLE IF NOT EXISTS channels (");
+                        cmd.AppendLine("    channel_id          INTEGER PRIMARY KEY AUTO_INCREMENT");
+                        cmd.AppendLine(",   channel_name        VARCHAR(127) NOT NULL");
+                        cmd.AppendLine(",   channel_subject     VARCHAR(255)");
+                        cmd.AppendLine(",   channel_creator     VARCHAR(127) NOT NULL");
+                        cmd.AppendLine(",   creator_id          INTEGER NOT NULL");
+                        cmd.AppendLine(",   channel_protected   INTEGER NOT NULL DEFAULT 0");
+                        cmd.AppendLine(",   channel_password    VARCHAR(127)");
+                        cmd.AppendLine(",   channel_hidden      INTEGER NOT NULL DEFAULT 0");
+                        cmd.AppendLine(");");
+
+                        using (MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql, transaction))
+                        {
+                            if (command.ExecuteNonQuery() > 0)
+                            {
+                                string cmd1 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('System', 'System Channel', 'Admin', 0, 1);";
+                                using (MySqlCommand command1 = new MySqlCommand(cmd1, mysql, transaction))
+                                {
+                                    command1.ExecuteNonQuery();
+                                }
+
+                                string cmd2 = "INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected) VALUES ('Lobby', 'Lobby Channel', 'Admin', 0, 1);";
+                                using (MySqlCommand command2 = new MySqlCommand(cmd2, mysql, transaction))
+                                {
+                                    command2.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                        transaction.Commit();
+                    }
                 }
-                transaction.Commit();
-
-                command.Dispose();
-                transaction.Dispose();
-
-                mysql.Close();
-                mysql.Dispose();
 
                 Logger.Log($"[Channel database ready]");
             }
-            catch
+            catch (Exception ex)
             {
-                Logger.Log($"[Failed to access channel database]");
+                Logger.Log($"[Failed to access channel database] Exception: {ex.Message}");
                 System.Environment.Exit(1);
             }
         }
 
-        public uint Create(MySqlConnection mysql, Channel channel)
+        public uint Create(Channel channel)
         {
-            Channel existing = Get(mysql, channel.Id);
-            if (existing != null)
+            if (Get(channel.Id) != null)
             {
                 return 0;
             }
 
-            MySqlParameter channelName = new MySqlParameter("channelName", channel.Name);
-            MySqlParameter channelSubject = new MySqlParameter("channelSubject", channel.Subject);
-            MySqlParameter channelCreator = new MySqlParameter("channelCreator", channel.Creator);
-            MySqlParameter channelCreatorId = new MySqlParameter("channelCreatorId", channel.CreatorId);
-            MySqlParameter channelProtected = new MySqlParameter("channelProtected", channel.Protected ? 1 : 0);
-            MySqlParameter channelPassword = new MySqlParameter("channelPassword", channel.Password);
-            MySqlParameter channelHidden = new MySqlParameter("channelHidden", channel.Hidden ? 1 : 0);
+            uint lastId = 0;
 
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected, channel_password, channel_hidden)" +
-                           "VALUES (?channelName, ?channelSubject, ?channelCreator, ?channelCreatorId, ?channelProtected, ?channelPassword, ?channelHidden);");
+            using (var mysql = new MySqlConnection(GetConnectionString()))
+            {
+                mysql.Open();
 
-            MySqlTransaction transaction = mysql.BeginTransaction();
+                StringBuilder cmd = new StringBuilder();
+                cmd.AppendLine("INSERT INTO channels (channel_name, channel_subject, channel_creator, creator_id, channel_protected, channel_password, channel_hidden)" +
+                               "VALUES (?channelName, ?channelSubject, ?channelCreator, ?channelCreatorId, ?channelProtected, ?channelPassword, ?channelHidden);");
 
-            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql, transaction);
-            command.Parameters.Add(channelName);
-            command.Parameters.Add(channelSubject);
-            command.Parameters.Add(channelCreator);
-            command.Parameters.Add(channelCreatorId);
-            command.Parameters.Add(channelProtected);
-            command.Parameters.Add(channelPassword);
-            command.Parameters.Add(channelHidden);
+                using (var transaction = mysql.BeginTransaction())
+                {
+                    using (var command = new MySqlCommand(cmd.ToString(), mysql, transaction))
+                    {
+                        command.Parameters.AddWithValue("channelName", channel.Name);
+                        command.Parameters.AddWithValue("channelSubject", channel.Subject);
+                        command.Parameters.AddWithValue("channelCreator", channel.Creator);
+                        command.Parameters.AddWithValue("channelCreatorId", channel.CreatorId);
+                        command.Parameters.AddWithValue("channelProtected", channel.Protected ? 1 : 0);
+                        command.Parameters.AddWithValue("channelPassword", channel.Password);
+                        command.Parameters.AddWithValue("channelHidden", channel.Hidden ? 1 : 0);
 
-            command.ExecuteNonQuery();
-
-            transaction.Commit();
-            uint lastId = (uint)command.LastInsertedId;
-            command.Dispose();
-            transaction.Dispose();
+                        command.ExecuteNonQuery();
+                        lastId = (uint)command.LastInsertedId;
+                    }
+                    transaction.Commit();
+                }
+            }
 
             return lastId;
         }
 
-        public Channel Get(MySqlConnection mysql, uint id)
+        public Channel Get(uint id)
         {
-            return GetInternal(mysql, "channel_id", new MySqlParameter("searchCondition", id));
+            return GetInternal("channel_id", new MySqlParameter("searchCondition", id));
         }
 
-        private Channel GetInternal(MySqlConnection mysql, string searchKey, MySqlParameter searchCondition)
+        private Channel GetInternal(string searchKey, MySqlParameter searchCondition)
         {
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("SELECT ");
-            cmd.AppendLine("    channel_id");
-            cmd.AppendLine(",   channel_name");
-            cmd.AppendLine(",   channel_subject");
-            cmd.AppendLine(",   channel_creator");
-            cmd.AppendLine(",   creator_id");
-            cmd.AppendLine(",   channel_protected");
-            cmd.AppendLine(",   channel_password");
-            cmd.AppendLine(",   channel_hidden");
-            cmd.AppendLine("FROM channels");
-            cmd.AppendLine($"WHERE {searchKey} = ?searchCondition;");
-
-            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
-            command.Parameters.Add(searchCondition);
-
-            MySqlDataReader reader = command.ExecuteReader();
-            if (!reader.Read())
+            using (var mysql = new MySqlConnection(GetConnectionString()))
             {
-                return null;
-            }
+                mysql.Open();
 
-            Channel channel = new Channel()
-            {
-                Id = uint.Parse(reader["channel_id"].ToString()),
-                Name = reader["channel_name"] as string,
-                Subject = reader["channel_subject"] as string,
-                Creator = reader["channel_creator"] as string,
-                CreatorId = (uint)(long)reader["creator_id"],
-                Protected = (long)reader["channel_protected"] != 0,
-                Password = reader["channel_password"] as string,
-                Hidden = (long)reader["channel_hidden"] != 0,
-                Persistent = true,
-            };
+                StringBuilder cmd = new StringBuilder();
+                cmd.AppendLine("SELECT * FROM channels");
+                cmd.AppendLine($"WHERE {searchKey} = ?searchCondition;");
 
-            reader.Close();
-            command.Dispose();
-
-            return channel;
-        }
-
-        public List<Channel> GetAll(MySqlConnection mysql)
-        {
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("SELECT ");
-            cmd.AppendLine("    channel_id");
-            cmd.AppendLine(",   channel_name");
-            cmd.AppendLine(",   channel_subject");
-            cmd.AppendLine(",   channel_creator");
-            cmd.AppendLine(",   creator_id");
-            cmd.AppendLine(",   channel_protected");
-            cmd.AppendLine(",   channel_password");
-            cmd.AppendLine(",   channel_hidden");
-            cmd.AppendLine("FROM channels");
-            cmd.AppendLine("ORDER BY channel_id;");
-
-            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql);
-
-            List<Channel> result = new List<Channel>();
-
-            MySqlDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                Channel channel = new Channel()
+                using (var command = new MySqlCommand(cmd.ToString(), mysql))
                 {
-                    Id = uint.Parse(reader["channel_id"].ToString()),
-                    Name = reader["channel_name"] as string,
-                    Subject = reader["channel_subject"] as string,
-                    Creator = reader["channel_creator"] as string,
-                    CreatorId = uint.Parse(reader["creator_id"].ToString()),
-                    Protected = uint.Parse(reader["channel_protected"].ToString()) != 0,
-                    Password = reader["channel_password"] as string,
-                    Hidden = uint.Parse(reader["channel_hidden"].ToString()) != 0,
-                    Persistent = true,
-                };
+                    command.Parameters.Add(searchCondition);
 
-                result.Add(channel);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Channel()
+                            {
+                                Id = Convert.ToUInt32(reader["channel_id"]),
+                                Name = reader["channel_name"].ToString(),
+                                Subject = reader["channel_subject"].ToString(),
+                                Creator = reader["channel_creator"].ToString(),
+                                CreatorId = Convert.ToUInt32(reader["creator_id"]),
+                                Protected = Convert.ToInt32(reader["channel_protected"]) != 0,
+                                Password = reader["channel_password"].ToString(),
+                                Hidden = Convert.ToInt32(reader["channel_hidden"]) != 0,
+                                Persistent = true,
+                            };
+                        }
+                    }
+                }
             }
+            return null;
+        }
 
-            reader.Close();
-            command.Dispose();
+        public List<Channel> GetAll()
+        {
+            var result = new List<Channel>();
 
+            using (var mysql = new MySqlConnection(GetConnectionString()))
+            {
+                mysql.Open();
+
+                string cmd = "SELECT * FROM channels ORDER BY channel_id;";
+                using (var command = new MySqlCommand(cmd, mysql))
+                {
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            result.Add(new Channel()
+                            {
+                                Id = Convert.ToUInt32(reader["channel_id"]),
+                                Name = reader["channel_name"].ToString(),
+                                Subject = reader["channel_subject"].ToString(),
+                                Creator = reader["channel_creator"].ToString(),
+                                CreatorId = Convert.ToUInt32(reader["creator_id"]),
+                                Protected = Convert.ToInt32(reader["channel_protected"]) != 0,
+                                Password = reader["channel_password"].ToString(),
+                                Hidden = Convert.ToInt32(reader["channel_hidden"]) != 0,
+                                Persistent = true,
+                            });
+                        }
+                    }
+                }
+            }
             return result;
         }
 
-        public void Delete(MySqlConnection mysql, uint id)
+        public void Delete(uint id)
         {
-            MySqlParameter channelId = new MySqlParameter("channelId", id);
-
-            StringBuilder cmd = new StringBuilder();
-            cmd.AppendLine("DELETE FROM channels WHERE channel_protected = 0 AND channel_id = ?channelId;");
-
-            MySqlTransaction transaction = mysql.BeginTransaction();
-
-            MySqlCommand command = new MySqlCommand(cmd.ToString(), mysql, transaction);
-            command.Parameters.Add(channelId);
-
-            command.ExecuteNonQuery();
-
-            transaction.Commit();
-
-            command.Dispose();
-            transaction.Dispose();
+            using (var mysql = new MySqlConnection(GetConnectionString()))
+            {
+                mysql.Open();
+                string cmd = "DELETE FROM channels WHERE channel_protected = 0 AND channel_id = ?channelId;";
+                using (var transaction = mysql.BeginTransaction())
+                {
+                    using (var command = new MySqlCommand(cmd, mysql, transaction))
+                    {
+                        command.Parameters.AddWithValue("channelId", id);
+                        command.ExecuteNonQuery();
+                    }
+                    transaction.Commit();
+                }
+            }
         }
     }
 

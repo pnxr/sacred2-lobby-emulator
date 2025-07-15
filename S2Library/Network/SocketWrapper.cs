@@ -304,8 +304,7 @@ namespace S2Library.Network
             var endPoint = new IPEndPoint(addr, port);
             try
             {
-                sock.ExclusiveAddressUse = true;
-                _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
+                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
                 sock.Bind(endPoint);
             }
