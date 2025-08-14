@@ -40,9 +40,16 @@ mono S2Lobby.exe
    ```ini
    network = {
        lobby_ip = "localhost",
-       lobby_port = 6800
+       lobby_port = 6800,
    }
    ```
+
+4. Optional, you can also add these additional values to network to remember you login credentials
+
+```ini
+lobby_name = "username",
+lobby_password= "password",
+```
 
 ---
 
