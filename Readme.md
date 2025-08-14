@@ -44,7 +44,7 @@ mono S2Lobby.exe
    }
    ```
 
-4. Optional, you can also add these additional values to network to remember you login credentials
+4. Optional, you can also add these additional values to network to remember your login credentials:
 
 ```ini
 lobby_name = "username",
